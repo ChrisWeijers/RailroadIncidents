@@ -107,7 +107,7 @@ Feel free to open an issue if you have any questions or suggestions regarding th
 ---
 
 ### Changelog
-For a detailed list of changes, see the [Changelog](https://github.com/ChrisWeijers/RailroadIncidents/blob/main/Changelog.md).
+For a detailed list of changes, see the [Changelog](https://github.com/ChrisWeijers/RailroadIncidents/blob/main/CHANGELOG.md).
 
 ### Additional Notes:
 - Limitations: 
