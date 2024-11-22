@@ -1,7 +1,11 @@
+<div align="center">
+
 # Data Visualization Dashboard (Railroad Incidents)
 
-![License](https://img.shields.io/github/license/ChrisWeijers/RailroadIncidents)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Last Commit](https://img.shields.io/github/last-commit/ChrisWeijers/RailroadIncidents)
+
+</div>
 
 ## Table of Contents
 - [Introduction](#introduction)
