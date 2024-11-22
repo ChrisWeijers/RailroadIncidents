@@ -26,14 +26,16 @@ with open('data/us-states.geojson', 'r') as geojson_file:
 fips_to_state = {state.fips: state.name for state in us.states.STATES}
 
 # Initialize Dash app
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, assets_folder='assets')
+app.title = 'Railroad Incidents'
+app._favicon = 'assets/favicon.ico'
 
 # Layout
 app.layout = html.Div([
     html.H1("Interactive Railroad Accidents by State", style={"textAlign": "center"}),
 
     # Map
-    dcc.Graph(id='state-map', style={"height": "700px"}),
+    dcc.Graph(id='state-map', style={"height": "700px"}, config={'scrollZoom': True}),
 
     # Filters for accidents
     html.Div([
@@ -130,7 +132,7 @@ def update_map(click_data, speed_range, deaths_range, injuries_range, damage_ran
     fig.update_layout(
         mapbox_style="open-street-map",
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        mapbox=dict(center={"lat": center_lat, "lon": center_lon}, zoom=zoom_level)
+        mapbox=dict(center={"lat": center_lat, "lon": center_lon},zoom=zoom_level)
     )
     return fig
 
