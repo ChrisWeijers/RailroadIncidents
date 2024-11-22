@@ -3,6 +3,7 @@ import pandas as pd
 from shapely.geometry import Point
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 df = pd.read_csv(
     'data/Railroad_Equipment_Accident_Incident.csv',
@@ -28,7 +29,7 @@ def create_map(data):
     return gdf, map_railroads, map_states
 
 
-gdf, map_railroads, map_states = create_map(df_points)
+#gdf, map_railroads, map_states = create_map(df_points)
 
 
 def plot(gdf, map_railroads, map_states):
@@ -43,8 +44,7 @@ def plot(gdf, map_railroads, map_states):
     gdf.plot(ax=ax, marker='o', markersize=3)
 
     ax.set_title('Railroads', size=15)
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
+    ax.set_axis_off()
     ax.set_xlim(xmin=-130, xmax=-60)
     ax.set_ylim(ymin=20, ymax=55)
 
@@ -52,5 +52,53 @@ def plot(gdf, map_railroads, map_states):
     return ax
 
 
-plot(gdf, map_railroads, map_states)
+# plot(gdf, map_railroads, map_states)
 
+
+# Load the GeoPandas file
+gdf = gpd.read_file(r'USA_Railroads-shp.zip')
+
+lines_lon = []
+lines_lat = []
+print('for loop')
+for _, row in gdf.iterrows():
+    if row.geometry.geom_type == 'LineString':
+        lon, lat = row.geometry.xy
+        lines_lon.extend(list(lon) + [None])
+        lines_lat.extend(list(lat) + [None])
+    elif row.geometry.geom_type == 'MultiLineString':
+        for line in row.geometry:
+            lon, lat = line.xy
+            lines_lon.extend(list(lon) + [None])
+            lines_lat.extend(list(lat) + [None])
+print('create map')
+# Create the map
+fig = go.Figure()
+print('add railroads')
+# Add railroads
+fig.add_trace(go.Scattergeo(
+    lon=lines_lon,
+    lat=lines_lat,
+    mode='lines',
+    line=dict(color='blue', width=1),
+    name='Railroads'
+))
+print('add incidents')
+# Add incidents
+fig.add_trace(go.Scattergeo(
+    lon=df['Longitud'],
+    lat=df['Latitude'],
+    mode='markers',
+    marker=dict(color='red', size=5),
+    name='Incidents'
+))
+print('layout')
+# Update layout
+fig.update_layout(
+    title='Railroad Incidents and Railroads',
+    geo=dict(scope='usa', showland=True, landcolor="darkgrey"),
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)'
+)
+print('show')
+fig.show()
