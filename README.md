@@ -90,7 +90,7 @@ Contributions are welcome! To contribute:
 ---
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/ChrisWeijers/RailroadIncidents/blob/main/LICENSE.md) file for details.
 
 ## Acknowledgments
 This project was developed as part of the coursework at **Eindhoven University of Technology (TU/e)** and **Tilburg University**. We would like to thank the faculties involved for their support and resources.
