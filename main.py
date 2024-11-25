@@ -20,13 +20,15 @@ with open('data/us-states.geojson', 'r') as geojson_file:
     us_states = json.load(geojson_file)
 
 state_count = df.groupby('state_name').size().reset_index(name='crash_count')
-print(state_count)
 
 fig = px.choropleth(state_count, geojson=us_states, color="crash_count",
                     locations="state_name", featureidkey="properties.name",
                     projection="mercator"
                    )
 fig.update_geos(fitbounds="locations", visible=False)
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-fig.show()
+fig.update_layout(
+    margin={"r":0,"t":0,"l":0,"b":0},
+    paper_bgcolor='darkgrey',
+    plot_bgcolor='darkgrey'
+)
 

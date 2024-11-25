@@ -29,7 +29,7 @@ def create_map(data):
     return gdf, map_railroads, map_states
 
 
-#gdf, map_railroads, map_states = create_map(df_points)
+# gdf, map_railroads, map_states = create_map(df_points)
 
 
 def plot(gdf, map_railroads, map_states):
@@ -48,30 +48,33 @@ def plot(gdf, map_railroads, map_states):
     ax.set_xlim(xmin=-130, xmax=-60)
     ax.set_ylim(ymin=20, ymax=55)
 
-    plt.show()
+    plt.ion()
     return ax
 
 
 # plot(gdf, map_railroads, map_states)
 
-
 # Load the GeoPandas file
 gdf = gpd.read_file(r'USA_Railroads-shp.zip')
 
-lines_lon = []
-lines_lat = []
-print('for loop')
-for _, row in gdf.iterrows():
-    if row.geometry.geom_type == 'LineString':
-        lon, lat = row.geometry.xy
-        lines_lon.extend(list(lon) + [None])
-        lines_lat.extend(list(lat) + [None])
-    elif row.geometry.geom_type == 'MultiLineString':
-        for line in row.geometry:
-            lon, lat = line.xy
+
+def get_railroads(gdf):
+    lines_lon = []
+    lines_lat = []
+    for _, row in gdf.iterrows():
+        if row.geometry.geom_type == 'LineString':
+            lon, lat = row.geometry.xy
             lines_lon.extend(list(lon) + [None])
             lines_lat.extend(list(lat) + [None])
-print('create map')
+        elif row.geometry.geom_type == 'MultiLineString':
+            for line in row.geometry:
+                lon, lat = line.xy
+                lines_lon.extend(list(lon) + [None])
+                lines_lat.extend(list(lat) + [None])
+    return lines_lon, lines_lat
+
+lines_lon, lines_lat = get_railroads(gdf)
+
 # Create the map
 fig = go.Figure()
 print('add railroads')
