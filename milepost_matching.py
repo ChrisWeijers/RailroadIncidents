@@ -216,8 +216,8 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
             mode='markers',
             marker=dict(
                 size=4,
-                color='blue',
-                opacity=0.6
+                color='orange',
+                opacity=0.5
             ),
             name='Mileposts',
             hovertext=milepost_df.apply(
@@ -236,8 +236,8 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
             mode='markers',
             marker=dict(
                 size=6,
-                color='red',
-                opacity=0.7
+                color='darkred',
+                opacity=0.5
             ),
             name='Crashes',
             hovertext=crash_df.apply(
@@ -250,7 +250,8 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
     )
 
     # Crashes by year with enhanced styling
-    yearly_crashes = crash_df['YEAR'].value_counts().sort_index()
+    crash_df['corrected_year'] = np.where(crash_df['YEAR'] > 24.0, 1900 + crash_df['YEAR'], 2000 + crash_df['YEAR'])
+    yearly_crashes = crash_df['corrected_year'].value_counts().sort_index()
     fig.add_trace(
         go.Bar(
             x=yearly_crashes.index,
@@ -259,7 +260,7 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
             marker_color='rgb(158,202,225)',
             hovertemplate='Year: %{x}<br>Crashes: %{y:,}<extra></extra>'
         ),
-        row=2, col=1
+        row=2, col=1,
     )
 
     # Top 10 railroads by crash count
@@ -278,7 +279,7 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
     # Update layout with enhanced styling
     fig.update_layout(
         mapbox=dict(
-            style="carto-positron",  # Clean, modern map style
+            style="carto-darkmatter",  # Clean, modern map style
             center=dict(lat=39.8283, lon=-98.5795),
             zoom=3,
             bearing=0,
@@ -301,7 +302,8 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
             x=0.01,
             bgcolor='rgba(255,255,255,0.8)'
         ),
-        margin=dict(l=60, r=60, t=80, b=30)
+        margin=dict(l=60, r=60, t=80, b=30),
+        paper_bgcolor='darkgrey',
     )
 
     # Update axes labels and styling
