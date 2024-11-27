@@ -33,4 +33,4 @@ fig.update_layout(
     paper_bgcolor='darkgrey',
     plot_bgcolor='darkgrey'
 )
-
+fig.show()

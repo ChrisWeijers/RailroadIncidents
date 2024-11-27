@@ -13,8 +13,6 @@ df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900+df['YEAR'], 2000+df['YEA
 
 df_points = df[['Longitud', 'Latitude']].dropna()
 
-geo_df = gpd.read_file('zip://USA_Railroads-shp.zip')
-
 fig = px.scatter_mapbox(
     df,
     lat='Latitude',
