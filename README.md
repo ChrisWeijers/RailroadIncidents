@@ -94,10 +94,10 @@ Contributions are welcome! To contribute:
 ---
 
 ## License
-The Raidroad Incidents visualization dashboard is open-sourced software licensed under the [MIT license](https://github.com/ChrisWeijers/RailroadIncidents/blob/main/LICENSE.md).
+The Railroad Incidents visualization dashboard is open-sourced software licensed under the [MIT license](https://github.com/ChrisWeijers/RailroadIncidents/blob/main/LICENSE.md).
 
 ## Contact
-- **Bjorn Albers** - 
+- **Bjorn Albers** - [@pythoniaan](https://github.com/pythoniaan)
 - **Bilgin Eren** - [@bilginn7](https://github.com/bilginn7)
 - **Junior Jansen** - [@JuniorJansen](https://github.com/JuniorJansen)
 - **Chris Weijers** - [@ChrisWeijers](https://github.com/ChrisWeijers)
