@@ -2,16 +2,39 @@ from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
-from main import fig
+import numpy as np
+import json
+import plotly.graph_objects as go
+
+df = pd.read_csv(
+    'data/Railroad_Equipment_Accident_Incident.csv',
+    delimiter=',',
+    low_memory=False
+)
+
+fips_codes = pd.read_csv(
+    'data/state_fips_master.csv',
+    delimiter=',',
+)
+fips_codes = fips_codes[['fips', 'state_name']].copy()
+
+df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
+df = df.dropna(subset=['Latitude', 'Longitud']).drop_duplicates(subset=['Latitude', 'Longitud'])
+df = pd.merge(df, fips_codes, left_on='STATE', right_on='fips').drop('fips', axis=1)
+
+
+with open('data/us-states.geojson', 'r') as geojson_file:
+    us_states = json.load(geojson_file)
 
 
 app = Dash(__name__, assets_folder='assets')
 
 app.layout = html.Div(
     children=[
+        html.H1("Interactive Railroad Accidents by State", style={"textAlign": "center"}),
+
         dcc.Graph(
             id='crash-map',
-            figure=fig,
             className='graph-container'
         )
     ],
@@ -22,6 +45,49 @@ app.layout = html.Div(
     }
 )
 
+@app.callback(
+    Output('crash-map', 'figure'),
+    [
+        Input('crash-map', 'clickData'),]
+)
+def figure(click_data):
+    fig = px.choropleth_mapbox(
+        geojson=us_states,
+        locations=[state['properties']['name'] for state in us_states['features']],
+        featureidkey="properties.name",
+        hover_name=[state['properties']['name'] for state in us_states['features']],
+        color_discrete_sequence=["white"],
+        center={'lat': 39.8282, 'lon': -98.5795},
+        zoom=3,
+        height=700,
+        opacity=0.03
+    )
+
+    fig.update_traces(marker_line_color="black", marker_line_width=1)
+
+    fig.update_layout(
+        mapbox_style="carto-darkmatter",
+    )
+
+    if click_data:
+        selected_state = click_data['points'][0]['location']
+        df_state = df[df['state_name'] == selected_state]
+
+        fig.add_trace(
+            go.Scattermapbox(
+                lat=df_state['Latitude'],
+                lon=df_state['Longitud'],
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    color='darkred',
+                    opacity=0.5
+                ),
+                hoverinfo='skip',
+            ),
+        )
+
+    return fig
+
 if __name__ == '__main__':
     app.run_server(debug=True)
-

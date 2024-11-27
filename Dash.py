@@ -89,6 +89,7 @@ def update_map(click_data, speed_range, deaths_range, injuries_range, damage_ran
     fig = px.choropleth_mapbox(
         geojson=us_states,
         locations=[state['properties']['name'] for state in us_states['features']],
+        mapbox_style='carto-darkmatter',
         featureidkey="properties.name",
         color_discrete_sequence=["rgba(0,0,0,0)"],
         hover_name=[state['properties']['name'] for state in us_states['features']],
