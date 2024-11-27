@@ -37,10 +37,16 @@ def load_milepost_data(filepath: str) -> pd.DataFrame:
 
     return df
 
-def load_crash_data(filepath: str) -> pd.DataFrame:
+def load_crash_data(filepath: str, fips_filepath: str) -> pd.DataFrame:
     """Load and clean the crash data from CSV."""
     # Read the CSV file
     df = pd.read_csv(filepath, low_memory=False)
+
+    df_fips = pd.read_csv(fips_filepath)
+
+    df_fips = df_fips[['fips', 'state_name']].copy()
+
+    df = pd.merge(df, df_fips, left_on='STATE', right_on='fips').drop('fips', axis=1)
 
     # Convert date columns
     date_columns = ['YEAR', 'MONTH', 'DAY']
@@ -241,7 +247,7 @@ def create_dashboard(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -> go.Fi
             ),
             name='Crashes',
             hovertext=crash_df.apply(
-                lambda x: f"Date: {x['DATE']}<br>Railroad: {x['RAILROAD']}<br>State: {x['STATE']}<br>Coordinates: ({x['Latitude']:.4f}, {x['Longitud']:.4f})",
+                lambda x: f"Date: {x['DATE']}<br>Railroad: {x['RAILROAD']}<br>State: {x['state_name']}<br>Coordinates: ({x['Latitude']:.4f}, {x['Longitud']:.4f})",
                 axis=1
             ),
             hoverinfo='text'
@@ -341,7 +347,7 @@ def get_plotting_statistics(crash_df: pd.DataFrame, milepost_df: pd.DataFrame) -
 
     return stats
 
-def main(milepost_filepath: str, crash_filepath: str) -> Tuple[pd.DataFrame, go.Figure, dict]:
+def main(milepost_filepath: str, crash_filepath: str, fips_filepath: str) -> Tuple[pd.DataFrame, go.Figure, dict]:
     """Main function to process data and create visualization."""
     # Load and clean data
     print("Loading milepost data...")
@@ -349,7 +355,7 @@ def main(milepost_filepath: str, crash_filepath: str) -> Tuple[pd.DataFrame, go.
     print(f"Loaded {len(milepost_df)} milepost records")
 
     print("\nLoading crash data...")
-    crash_df = load_crash_data(crash_filepath)
+    crash_df = load_crash_data(crash_filepath, fips_filepath)
     print(f"Loaded {len(crash_df)} crash records")
 
     print("\nMatching crashes to mileposts using coordinates...")
@@ -377,8 +383,9 @@ def main(milepost_filepath: str, crash_filepath: str) -> Tuple[pd.DataFrame, go.
 if __name__ == "__main__":
     milepost_filepath = 'data/Rail_Mileposts_20241126.csv'
     crash_filepath = 'data/Railroad_Equipment_Accident_Incident.csv'
+    fips_filepath = 'data/state_fips_master.csv'
 
-    crash_df_matched, dashboard, stats = main(milepost_filepath, crash_filepath)
+    crash_df_matched, dashboard, stats = main(milepost_filepath, crash_filepath, fips_filepath)
 
     # Display the dashboard
     dashboard.show()

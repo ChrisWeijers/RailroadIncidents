@@ -16,6 +16,8 @@ fips_codes = fips_codes[['fips', 'state_name']].copy()
 
 df = pd.merge(df, fips_codes, left_on='STATE', right_on='fips').drop('fips', axis=1)
 
+print(df.head())
+
 with open('data/us-states.geojson', 'r') as geojson_file:
     us_states = json.load(geojson_file)
 
