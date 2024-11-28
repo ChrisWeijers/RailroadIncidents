@@ -32,6 +32,12 @@ df = pd.merge(df, fips_codes, left_on='STATE', right_on='fips').drop('fips', axi
 with open('data/us-states.geojson', 'r') as geojson_file:
     us_states = json.load(geojson_file)
 
+state_count = df.groupby('state_name').size().reset_index(name='crash_count').sort_values(by='crash_count',
+                                                                                          ascending=False)
+
+bar = px.bar(state_count, x='state_name', y='crash_count', title='States by Crash Count', labels={
+    'state_name': 'State', 'crash_count': 'Crashes'
+})
 
 app = Dash(__name__, assets_folder='assets')
 
@@ -42,7 +48,11 @@ app.layout = html.Div(
         dcc.Graph(
             id='crash-map',
             className='graph-container',
-        )
+        ),
+
+        dcc.Graph(id='barchart',
+                  figure=bar,
+                  className='graph-container')
     ],
     style={
         "width": "100%",
