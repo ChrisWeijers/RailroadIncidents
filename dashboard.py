@@ -46,6 +46,11 @@ app.layout = html.Div(
         dcc.Graph(
             id='crash-map',
             className='graph-container',
+            config={
+                'scrollZoom': True,       # Enable scroll zoom
+                'doubleClick': 'reset',   # Optional: Double-click behavior
+                'displayModeBar': True,   # Optional: Show mode bar for additional controls
+            },
         ),
 
         dcc.Graph(id='barchart',
@@ -64,30 +69,65 @@ app.layout = html.Div(
     [Input('crash-map', 'hoverData'),
      Input('barchart', 'hoverData'),
      Input('barchart', 'clickData'),
-        Input('crash-map', 'clickData'),
+     Input('crash-map', 'clickData'),
      ]
 )
 def update_map(hover_map, hover_bar, click_bar, click_data):
 
-    bar = px.bar(state_count, x='state_name', y='crash_count', title='States by Crash Count', labels={
-        'state_name': 'State', 'crash_count': 'Crashes'
-        })
+    bar = px.bar(state_count,
+                 x='state_name',
+                 y='crash_count',
+                 title='States by Crash Count',
+                 labels={'state_name': 'State', 'crash_count': 'Crashes'},
+                 hover_data={'crash_count': True}
+                 )
+
+    bar.update_traces(
+        hovertemplate="<b>%{x}</b><br>Crashes: %{y:,}<extra></extra>",
+        hoverlabel=dict(
+            bgcolor="lightblue",
+            bordercolor="blue",
+            font=dict(
+                size=14,
+                color="navy",
+                family="Helvetica"
+            )
+        )
+    )
+
     fig = px.choropleth_mapbox(
+        state_count,  # Use the state_count DataFrame
         geojson=us_states,
-        locations=[state['properties']['name'] for state in us_states['features']],
+        locations='state_name',
         featureidkey="properties.name",
-        hover_name=[state['properties']['name'] for state in us_states['features']],
-        color_discrete_sequence=["white"],
+        color='crash_count',  # Map crash_count to color
+        color_continuous_scale="Blues",  # Choose a color scale that represents intensity
+        hover_name='state_name',  # Display state name on hover
+        hover_data={'crash_count': True},  # Include crash_count in hover
         center={'lat': 39.8282, 'lon': -98.5795},
         zoom=3,
         height=700,
-        opacity=0.03
+        opacity=0,  # Adjust opacity
     )
 
-    fig.update_traces(marker_line_color="black", marker_line_width=1)
+    fig.update_traces(
+        marker_line_color="black",
+        marker_line_width=1,
+        hovertemplate="<b>%{hovertext}</b><br>Crashes: %{customdata[0]}<extra></extra>",
+        hoverlabel=dict(
+            bgcolor="rgba(255, 255, 255, 0.8)",  # Semi-transparent white
+            bordercolor="gray",
+            font=dict(
+                size=14,
+                color="black",
+                family="Helvetica"
+            )
+        )
+    )
 
     fig.update_layout(
         mapbox_style="carto-darkmatter",
+        font=dict(color='white', size=12),
         paper_bgcolor='darkgrey',
         showlegend=False
     )
