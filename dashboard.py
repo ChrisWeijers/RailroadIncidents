@@ -35,9 +35,7 @@ with open('data/us-states.geojson', 'r') as geojson_file:
 state_count = df.groupby('state_name').size().reset_index(name='crash_count').sort_values(by='crash_count',
                                                                                           ascending=False)
 
-bar = px.bar(state_count, x='state_name', y='crash_count', title='States by Crash Count', labels={
-    'state_name': 'State', 'crash_count': 'Crashes'
-})
+
 
 app = Dash(__name__, assets_folder='assets')
 
@@ -51,7 +49,6 @@ app.layout = html.Div(
         ),
 
         dcc.Graph(id='barchart',
-                  figure=bar,
                   className='graph-container')
     ],
     style={
@@ -62,12 +59,19 @@ app.layout = html.Div(
 )
 
 @app.callback(
-    Output('crash-map', 'figure'),
-    [
-        Input('crash-map', 'clickData'),]
+    [Output('crash-map', 'figure'),
+     Output('barchart', 'figure')],
+    [Input('crash-map', 'hoverData'),
+     Input('barchart', 'hoverData'),
+     Input('barchart', 'clickData'),
+        Input('crash-map', 'clickData'),
+     ]
 )
-def update_map(click_data):
+def update_map(hover_map, hover_bar, click_bar, click_data):
 
+    bar = px.bar(state_count, x='state_name', y='crash_count', title='States by Crash Count', labels={
+        'state_name': 'State', 'crash_count': 'Crashes'
+        })
     fig = px.choropleth_mapbox(
         geojson=us_states,
         locations=[state['properties']['name'] for state in us_states['features']],
@@ -88,8 +92,55 @@ def update_map(click_data):
         showlegend=False
     )
 
-    if click_data:
-        selected_state = click_data['points'][0]['location']
+    if hover_map or hover_bar:
+        if hover_bar:
+            hovered_state = hover_bar['points'][0]['label']
+
+        if hover_map:
+            hovered_state = hover_map['points'][0]['location']
+        # Extract the geometry of the hovered state
+        hovered_geometry = None
+        for feature in us_states['features']:
+            if feature['properties']['name'] == hovered_state:
+                hovered_geometry = feature['geometry']
+                break
+
+        # If geometry is found, highlight it
+        if hovered_geometry:
+            lats, lons = [], []
+            if hovered_geometry['type'] == 'Polygon':
+                for coords in hovered_geometry['coordinates']:
+                    lats.extend([point[1] for point in coords])
+                    lons.extend([point[0] for point in coords])
+            elif hovered_geometry['type'] == 'MultiPolygon':
+                for polygon in hovered_geometry['coordinates']:
+                    for coords in polygon:
+                        lats.extend([point[1] for point in coords])
+                        lons.extend([point[0] for point in coords])
+
+            fig.add_trace(
+                go.Scattermapbox(
+                    lat=lats,
+                    lon=lons,
+                    mode='lines',
+                    line=dict(
+                        width=1,
+                        color='lightgrey',
+
+                    ),
+                    opacity=0.2,
+                    hoverinfo='skip',
+                    name='Highlight_Hover'
+                )
+            )
+        fig.update_mapboxes(uirevision=True)
+
+    if click_data or click_bar:
+        if click_bar:
+            selected_state = click_bar['points'][0]['label']
+
+        if click_data:
+            selected_state = click_data['points'][0]['location']
         df_state = df[df['state_name'] == selected_state]
 
         fig.add_trace(
@@ -142,13 +193,13 @@ def update_map(click_data):
             zoom=5,
             center={
                 'lat': states_center.loc[states_center['Name'] ==
-                                         click_data['points'][0]['location'], 'Latitude'].values[0],
+                                         selected_state, 'Latitude'].values[0],
                 'lon': states_center.loc[states_center['Name'] ==
-                                         click_data['points'][0]['location'], 'Longitude'].values[0]
+                                         selected_state, 'Longitude'].values[0]
             },
         )
 
-    return fig
+    return fig, bar
 
 
 if __name__ == '__main__':
