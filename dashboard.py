@@ -41,7 +41,7 @@ app.layout = html.Div(
 
         dcc.Graph(
             id='crash-map',
-            className='graph-container'
+            className='graph-container',
         )
     ],
     style={
@@ -56,16 +56,7 @@ app.layout = html.Div(
     [
         Input('crash-map', 'clickData'),]
 )
-def figure(click_data):
-    if not click_data:
-        zoom = 3
-        center = {'lat': 39.8282, 'lon': -98.5795}
-    else:
-        zoom = 5
-        center = {
-            'lat': states_center.loc[states_center['Name'] == click_data['points'][0]['location'], 'Latitude'].values[0],
-            'lon': states_center.loc[states_center['Name'] == click_data['points'][0]['location'], 'Longitude'].values[0]
-        }
+def update_map(click_data):
 
     fig = px.choropleth_mapbox(
         geojson=us_states,
@@ -73,8 +64,8 @@ def figure(click_data):
         featureidkey="properties.name",
         hover_name=[state['properties']['name'] for state in us_states['features']],
         color_discrete_sequence=["white"],
-        center=center,
-        zoom=zoom,
+        center={'lat': 39.8282, 'lon': -98.5795},
+        zoom=3,
         height=700,
         opacity=0.03
     )
@@ -84,6 +75,7 @@ def figure(click_data):
     fig.update_layout(
         mapbox_style="carto-darkmatter",
         paper_bgcolor='darkgrey',
+        showlegend=False
     )
 
     if click_data:
@@ -104,7 +96,51 @@ def figure(click_data):
             ),
         )
 
+        selected_geometry = None
+        for feature in us_states['features']:
+            if feature['properties']['name'] == selected_state:
+                selected_geometry = feature['geometry']
+                break
+
+        if selected_geometry and selected_geometry['type'] == 'Polygon':
+            for coords in selected_geometry['coordinates']:
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lon=[point[0] for point in coords],
+                        lat=[point[1] for point in coords],
+                        mode='lines',
+                        line=dict(color='lightgrey', width=1),
+                        hoverinfo='skip',
+                        opacity=0.2
+                    )
+                )
+        elif selected_geometry and selected_geometry['type'] == 'MultiPolygon':
+            for polygon in selected_geometry['coordinates']:
+                for coords in polygon:
+                    fig.add_trace(
+                        go.Scattermapbox(
+                            lon=[point[0] for point in coords],
+                            lat=[point[1] for point in coords],
+                            mode='lines',
+                            line=dict(color='lightgrey', width=1),
+                            hoverinfo='skip',
+                            opacity=0.2
+                        )
+                    )
+
+        fig.update_mapboxes(
+            zoom=5,
+            center={
+                'lat': states_center.loc[states_center['Name'] ==
+                                         click_data['points'][0]['location'], 'Latitude'].values[0],
+                'lon': states_center.loc[states_center['Name'] ==
+                                         click_data['points'][0]['location'], 'Longitude'].values[0]
+            },
+        )
+
     return fig
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
