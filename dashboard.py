@@ -49,7 +49,6 @@ app.layout = html.Div(
                 'displayModeBar': True,  # Optional: Show mode bar for additional controls
             },
         ),
-
         dcc.Graph(id='barchart',
                   className='graph-container')
     ],
