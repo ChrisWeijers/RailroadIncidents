@@ -55,6 +55,11 @@ with open('data/us-states.geojson', 'r') as geojson_file:
 
 # Aggregate crash counts by state
 state_count = df.groupby('state_name').size().reset_index(name='crash_count').sort_values(by='crash_count', ascending=False)
+diff = pd.concat([states_center['Name'], state_count['state_name']]).drop_duplicates(keep=False).to_frame()
+diff.columns = ['state_name']
+diff.insert(1, 'crash_count', [0, 0, 0])
+state_count = state_count._append(diff)
+
 
 app = Dash(__name__, assets_folder='assets')
 
@@ -186,10 +191,10 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
             locations=state_count['state_name'],
             z=state_count['crash_count'],
             featureidkey="properties.name",
-            colorscale=[[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']],
-            marker_opacity=1,
+            colorscale=[[0, 'darkgrey'], [1, 'darkgrey']],
+            marker_opacity=0.1,
             marker_line_width=0.5,
-            marker_line_color='white',
+            marker_line_color='lightgrey',
             hoverinfo='text',
             # Store the clean state name in 'customdata' for use in callbacks
             customdata=state_count['state_name'],
@@ -240,6 +245,10 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
         df_state = df[df['state_name'] == selected_state]
         add_points(fig, df_state, selected_state, 'clickstate')
 
+    if 'mapbox.zoom' in relayout:
+        if relayout['mapbox.zoom'] >= 5:
+            add_points(fig, df, None, 'all_points')
+
     return fig, bar
 
 def add_points(fig, df_state, selected_state, name):
@@ -257,10 +266,9 @@ def add_points(fig, df_state, selected_state, name):
                     color='darkred',
                     opacity=0.5
                 ),
-                hoverinfo='text',
-                text=df_state.apply(lambda row: f"Incident No: {row['INCDTNO']}<br>Year: {row['corrected_year']}<br>Location: ({row['Latitude']}, {row['Longitud']})", axis=1),
+                hoverinfo='skip',
                 customdata=df_state['state_name'].tolist(),  # Ensure customdata is set
-                name=name
+                name=name,
             ),
         )
 
