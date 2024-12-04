@@ -18,8 +18,8 @@ class Map:
                 locations=self.state_count['state_name'],
                 z=self.state_count['crash_count'],
                 featureidkey="properties.name",
-                colorscale=[[0, 'darkgrey'], [1, 'darkgrey']],
-                marker_opacity=0.1,
+                colorscale=[[0, 'black'], [1, 'white']],
+                marker_opacity=0.25,
                 marker_line_width=0.5,
                 marker_line_color='lightgrey',
                 hoverinfo='text',
@@ -124,14 +124,23 @@ class BarChart:
                           y='crash_count',
                           title='States by Crash Count',
                           labels={'state_name': 'State', 'crash_count': 'Crashes'},
-                          hover_data={'crash_count': True})
+                          hover_data={'crash_count': True},
+                          color_discrete_sequence=['white'])
 
         self.bar.update_traces(
             hovertemplate="<b>%{x}</b><br>Crashes: %{y:,}<extra></extra>",
             hoverlabel=dict(
-                bgcolor="lightblue",
-                bordercolor="blue",
-                font=dict(size=14, color="navy", family="Helvetica")
+                bgcolor="lightgrey",
+                bordercolor="grey",
+                font=dict(size=14, color="black", family="Helvetica")
             )
         )
+
+        self.bar.update_layout(
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor='rgba(0, 0, 0, 0)',
+            font_color='grey',
+            title_font_color='grey'
+        )
+
         return self.bar

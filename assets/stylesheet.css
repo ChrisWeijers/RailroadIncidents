@@ -1,13 +1,105 @@
-body {
+body, html {
     margin: 0;
     padding: 0;
-    background-color: darkgrey;
-    color: white;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #262626;
 }
 
+/* Main container uses Flexbox */
+.main-container {
+    display: flex;
+    height: 100vh; /* Full viewport height */
+}
+
+/* Popup Sidebar Styling */
+.popup-sidebar {
+    width: 300px; /* Width of the sidebar */
+    height: 400px;
+    background-color: #090909; /* Dark grey background */
+    border-radius: 1em;
+    color: #ffffff; /* Text color */
+    padding: 20px;
+    box-sizing: border-box;
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(-100%); /* Hidden by default */
+    position: fixed; /* Stay fixed on the screen */
+    z-index: 1000; /* Above main content */
+}
+
+/* Show the sidebar when active */
+.popup-sidebar[style*="display: block"] {
+    transform: translateX(0);
+}
+
+/* Popup Content Styling */
+.popup-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Close Button Styling */
+#close-popup {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #ff4c4c; /* Red color for visibility */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+}
+
+#close-popup:hover {
+    background-color: #ff0000;
+}
+
+/* Content Area Styling */
+.content-area {
+    flex: 1; /* Take up remaining space */
+    margin-left: 0; /* No margin when sidebar is hidden */
+    transition: margin-left 0.3s ease-in-out;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* Adjust content area when sidebar is visible */
+.popup-sidebar[style*="display: block"] ~ .content-area {
+    margin-left: 300px; /* Same as sidebar width */
+}
+
+/* Graph Containers */
 .graph-container {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background-color: darkgrey;
+    margin-top: 20px;
+    border-radius: 5em;
+}
+
+/* Header Styling */
+.content-area h1 {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #ffffff;
+}
+
+/* Popup Details Styling */
+#popup-details p {
+    margin: 5px 0;
+    font-size: 16px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .popup-sidebar {
+        width: 100%;
+    }
+
+    .popup-sidebar[style*="display: block"] ~ .content-area {
+        margin-left: 0;
+    }
+
+    .content-area {
+        padding: 10px;
+    }
 }
