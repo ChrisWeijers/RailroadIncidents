@@ -27,12 +27,6 @@ states_center = pd.read_csv(
     delimiter=',',
 )
 
-# Inspect the columns
-logging.debug("States Center Columns: " + ", ".join(states_center.columns.tolist()))
-
-# Inspect unique state names
-logging.debug("Unique State Names in states_center['Name']: " + ", ".join(states_center['Name'].unique()))
-
 # Select relevant columns
 fips_codes = fips_codes[['fips', 'state_name']].copy()
 
@@ -57,259 +51,210 @@ with open('data/us-states.geojson', 'r') as geojson_file:
 state_count = df.groupby('state_name').size().reset_index(name='crash_count').sort_values(by='crash_count', ascending=False)
 diff = pd.concat([states_center['Name'], state_count['state_name']]).drop_duplicates(keep=False).to_frame()
 diff.columns = ['state_name']
-diff.insert(1, 'crash_count', [0, 0, 0])
-state_count = state_count._append(diff)
-
+diff.insert(1, 'crash_count', [0] * len(diff))
+state_count = pd.concat([state_count, diff])
 
 app = Dash(__name__, assets_folder='assets')
 
 app.layout = html.Div(
     children=[
+        # Hidden Stores
         dcc.Store(id='selected-state', storage_type='memory'),
-        dcc.Store(id='manual-zoom', storage_type='memory',
-                  data={'zoom': 3, 'center': {'lat': 39.8282, 'lon': -98.5795}}),
+        dcc.Store(id='manual-zoom', storage_type='memory', data={'zoom': 3, 'center': {'lat': 39.8282, 'lon': -98.5795}}),
+        dcc.Store(id='show-popup', data=False),  # Store for popup visibility
 
-        html.H1("Interactive Railroad Accidents by State", style={"textAlign": "center"}),
+        # Main Container with Flex Layout
+        html.Div(
+            className='main-container',
+            children=[
+                # Popup Sidebar
+                html.Div(
+                    id="popup-sidebar",
+                    className="popup-sidebar",
+                    children=[
+                        html.Div(
+                            id="popup-content",  # Container for dynamic content
+                            className="popup-content",
+                            children=[
+                                html.H3("State Details"),
+                                html.Div(id="popup-details"),
+                                dcc.Slider(
+                                    id="example-slider",
+                                    min=0,
+                                    max=100,
+                                    step=1,
+                                    value=50,
+                                    marks={i: str(i) for i in range(0, 101, 20)},
+                                ),
+                                html.Button("Close", id="close-popup"),
+                            ]
+                        )
+                    ]
+                ),
 
-        dcc.Graph(
-            id='crash-map',
-            className='graph-container',
-            config={
-                'scrollZoom': True,
-                'doubleClick': 'reset',
-                'displayModeBar': True,
-            },
-        ),
-        dcc.Graph(id='barchart',
-                  className='graph-container')
-    ],
-    style={
-        "width": "100%",
-        "margin": "0",
-        "padding": "0",
-    }
-)
-
-
-@app.callback(
-    [Output('manual-zoom', 'data'),
-     Output('selected-state', 'data')],
-    [Input('crash-map', 'relayoutData'),
-     Input('crash-map', 'clickData'),
-     Input('barchart', 'clickData')],
-    [State('manual-zoom', 'data'),
-     State('selected-state', 'data')]
-)
-def handle_map_interactions(relayout_data, map_click, bar_click, current_zoom_state, current_selected):
-    ctx = callback_context
-    if not ctx.triggered:
-        return current_zoom_state, current_selected
-
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    trigger_prop = ctx.triggered[0]['prop_id'].split('.')[1]
-
-    default_view = {
-        'zoom': 3,
-        'center': {'lat': 39.8282, 'lon': -98.5795}
-    }
-
-    # Handle map view changes
-    if trigger_id == 'crash-map' and trigger_prop == 'relayoutData' and relayout_data:
-        if all(key in relayout_data for key in ['mapbox.zoom', 'mapbox.center.lat', 'mapbox.center.lon']):
-            return default_view, None
-
-        if 'mapbox.zoom' in relayout_data or 'mapbox.center' in relayout_data:
-            new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state['zoom'])
-            new_center = {
-                'lat': relayout_data.get('mapbox.center', current_zoom_state['center'])['lat']
-                if 'mapbox.center' in relayout_data else current_zoom_state['center']['lat'],
-                'lon': relayout_data.get('mapbox.center', current_zoom_state['center'])['lon']
-                if 'mapbox.center' in relayout_data else current_zoom_state['center']['lon']
-            }
-            return {'zoom': new_zoom, 'center': new_center}, current_selected
-
-    # Handle clicks
-    clicked_state = None
-    if trigger_id == 'crash-map' and map_click:
-        point_data = map_click['points'][0]
-        clicked_state = point_data.get('customdata') or \
-                       (point_data.get('text', '').split('<br>')[0] if point_data.get('text') else None)
-    elif trigger_id == 'barchart' and bar_click:
-        clicked_state = bar_click['points'][0].get('label') or bar_click['points'][0].get('x')
-
-    if clicked_state:
-        if clicked_state == current_selected:
-            return default_view, None
-        else:
-            state_center = states_center.loc[states_center['Name'] == clicked_state]
-            if not state_center.empty:
-                return {
-                    'zoom': 5,
-                    'center': {
-                        'lat': state_center.iloc[0]['Latitude'],
-                        'lon': state_center.iloc[0]['Longitude']
-                    }
-                }, clicked_state
-
-    return current_zoom_state, current_selected
-
-# Main callback to update map and bar chart
-@app.callback(
-    [Output('crash-map', 'figure'),
-     Output('barchart', 'figure')],
-    [Input('crash-map', 'hoverData'),
-     Input('barchart', 'hoverData'),
-     Input('selected-state', 'data'),
-     Input('crash-map', 'relayoutData'),
-     Input('manual-zoom', 'data')]
-)
-def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
-    # Create bar chart
-    bar = px.bar(state_count,
-                 x='state_name',
-                 y='crash_count',
-                 title='States by Crash Count',
-                 labels={'state_name': 'State', 'crash_count': 'Crashes'},
-                 hover_data={'crash_count': True})
-
-    bar.update_traces(
-        hovertemplate="<b>%{x}</b><br>Crashes: %{y:,}<extra></extra>",
-        hoverlabel=dict(
-            bgcolor="lightblue",
-            bordercolor="blue",
-            font=dict(size=14, color="navy", family="Helvetica")
+                # Main Content Area
+                html.Div(
+                    className='content-area',
+                    children=[
+                        html.H1("Interactive Railroad Accidents by State", style={"textAlign": "center"}),
+                        dcc.Graph(
+                            id='crash-map',
+                            className='graph-container',
+                            config={
+                                'scrollZoom': True,
+                                'doubleClick': 'reset',
+                                'displayModeBar': True,
+                            },
+                        ),
+                        dcc.Graph(id='barchart', className='graph-container'),
+                    ]
+                ),
+            ]
         )
+    ]
+)
+
+@app.callback(
+    [
+        Output('crash-map', 'figure'),
+        Output('barchart', 'figure'),
+        Output('manual-zoom', 'data'),
+        Output('selected-state', 'data'),
+        Output('popup-sidebar', 'style'),
+        Output('popup-details', 'children')  # Dynamically update popup details
+    ],
+    [
+        Input('crash-map', 'clickData'),
+        Input('barchart', 'clickData'),
+        Input('close-popup', 'n_clicks'),
+    ],
+    [
+        State('manual-zoom', 'data'),
+        State('selected-state', 'data')
+    ]
+)
+def update_map(map_click, bar_click, close_click, manual_zoom, selected_state):
+    ctx = callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+
+    # Default values
+    zoom_data = manual_zoom or {'zoom': 3, 'center': {'lat': 39.8282, 'lon': -98.5795}}
+    state_selected = selected_state
+    popup_style = {'display': 'none'}  # Hide sidebar by default
+    popup_details = ""
+
+    # Handle map or bar chart clicks
+    if trigger_id == 'crash-map' and map_click:
+        state_selected = map_click['points'][0].get('customdata') or map_click['points'][0].get('text', '').split('<br>')[0]
+        logging.debug(f"Clicked State: {state_selected}")
+        popup_style = {'display': 'block'}  # Show sidebar
+
+        # Populate the popup with state details
+        state_data = df[df['state_name'] == state_selected]
+        total_crashes = state_data.shape[0]
+        year_min = state_data['corrected_year'].min()
+        year_max = state_data['corrected_year'].max()
+        unique_locations = state_data[['Latitude', 'Longitud']].drop_duplicates().shape[0]
+
+        popup_details = html.Div(
+            children=[
+                html.P(f"State: {state_selected}", style={"fontWeight": "bold", "color": "#ffffff"}),
+                html.P(f"Total Crashes: {total_crashes}", style={"color": "#ffffff"}),
+                html.P(f"Year Range: {year_min} - {year_max}", style={"color": "#ffffff"}),
+                html.P(f"Unique Crash Locations: {unique_locations}", style={"color": "#ffffff"}),
+            ]
+        )
+
+    elif trigger_id == 'barchart' and bar_click:
+        state_selected = bar_click['points'][0]['x']
+        logging.debug(f"Bar Chart Selected State: {state_selected}")
+        popup_style = {'display': 'block'}  # Show sidebar
+
+        # Populate the popup with state details
+        state_data = df[df['state_name'] == state_selected]
+        total_crashes = state_data.shape[0]
+        year_min = state_data['corrected_year'].min()
+        year_max = state_data['corrected_year'].max()
+        unique_locations = state_data[['Latitude', 'Longitud']].drop_duplicates().shape[0]
+
+        popup_details = html.Div(
+            children=[
+                html.P(f"State: {state_selected}", style={"fontWeight": "bold", "color": "#ffffff"}),
+                html.P(f"Total Crashes: {total_crashes}", style={"color": "#ffffff"}),
+                html.P(f"Year Range: {year_min} - {year_max}", style={"color": "#ffffff"}),
+                html.P(f"Unique Crash Locations: {unique_locations}", style={"color": "#ffffff"}),
+            ]
+        )
+
+    elif trigger_id == 'close-popup' and close_click:
+        state_selected = None
+        popup_style = {'display': 'none'}  # Hide sidebar
+        popup_details = ""
+
+    # Update zoom to state
+    if state_selected:
+        state_center = states_center[states_center['Name'] == state_selected]
+        if not state_center.empty:
+            lat, lon = state_center.iloc[0]['Latitude'], state_center.iloc[0]['Longitude']
+            zoom_data = {'zoom': 5, 'center': {'lat': lat, 'lon': lon}}
+
+    # Create bar chart
+    bar = px.bar(
+        state_count,
+        x='state_name',
+        y='crash_count',
+        title='States by Crash Count',
+        labels={'state_name': 'State', 'crash_count': 'Crashes'}
     )
 
-    # Initialize the figure
+    # Create map figure
     fig = go.Figure()
 
-    # Add a single Choropleth layer for all states with transparent fill
+    # Add Choropleth layer
     fig.add_trace(
         go.Choroplethmapbox(
             geojson=us_states,
             locations=state_count['state_name'],
             z=state_count['crash_count'],
             featureidkey="properties.name",
-            colorscale=[[0, 'darkgrey'], [1, 'darkgrey']],
-            marker_opacity=0.1,
+            colorscale=[[0, 'lightgrey'], [1, 'darkred']],
+            marker_opacity=0.6,
             marker_line_width=0.5,
-            marker_line_color='lightgrey',
             hoverinfo='text',
-            # Store the clean state name in 'customdata' for use in callbacks
-            customdata=state_count['state_name'],
-            text=[f"{state}<br>Crashes: {count:,}" for state, count in zip(state_count['state_name'], state_count['crash_count'])],
+            text=[f"{state}<br>Crashes: {count:,}" for state, count in
+                  zip(state_count['state_name'], state_count['crash_count'])],
             hovertemplate="<b>%{text}</b><extra></extra>",
             showscale=False,
-            name='States'
         )
     )
 
-    # Use manual_zoom for map center and zoom
-    center = manual_zoom['center'] if manual_zoom else {'lat': 39.8282, 'lon': -98.5795}
-    zoom = manual_zoom['zoom'] if manual_zoom else 3
+    # Add points for selected state
+    if state_selected:
+        state_data = df[df['state_name'] == state_selected]
+        fig.add_trace(
+            go.Scattermapbox(
+                lat=state_data['Latitude'],
+                lon=state_data['Longitud'],
+                mode='markers',
+                marker=dict(size=6, color='darkred', opacity=0.7),
+                text=state_data['state_name'],
+                hoverinfo='text',
+                name=state_selected,
+            )
+        )
 
+    # Update map layout
     fig.update_layout(
         mapbox=dict(
             style="carto-darkmatter",
-            center=center,
-            zoom=zoom
+            center=zoom_data['center'],
+            zoom=zoom_data['zoom']
         ),
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        height=900,
-        paper_bgcolor='darkgrey',
-        font=dict(color='white', size=12),
-        showlegend=False,
-        transition={'duration': 500, 'easing': 'elastic-in-out'}
+        height=900
     )
 
-    # Handle hover interactions
-    if hover_map or hover_bar:
-        try:
-            if hover_map:
-                hovered_point = hover_map['points'][0]
-                hovered_state = (hovered_point.get('customdata') or
-                                 hovered_point.get('text', '').split('<br>')[0])
-            else:
-                hovered_point = hover_bar['points'][0]
-                hovered_state = hovered_point.get('label') or hovered_point.get('name')
-
-            if hovered_state:
-                logging.debug(f"Hovered State: {hovered_state}")
-                highlight_state(fig, hovered_state, 'hoverstate')
-        except Exception as e:
-            logging.error(f"Error processing hover data: {e}")
-
-    # Handle selected state and points display
-    if selected_state:
-        df_state = df[df['state_name'] == selected_state]
-        add_points(fig, df_state, selected_state, 'clickstate')
-
-    if 'mapbox.zoom' in relayout:
-        if relayout['mapbox.zoom'] >= 5:
-            add_points(fig, df, None, 'all_points')
-
-    return fig, bar
-
-def add_points(fig, df_state, selected_state, name):
-    """
-    Adds incident points to the map for the selected state.
-    """
-    if df_state is not None and not df_state.empty:
-        fig.add_trace(
-            go.Scattermapbox(
-                lat=df_state['Latitude'],
-                lon=df_state['Longitud'],
-                mode='markers',
-                marker=dict(
-                    size=6,
-                    color='darkred',
-                    opacity=0.5
-                ),
-                hoverinfo='skip',
-                customdata=df_state['state_name'].tolist(),  # Ensure customdata is set
-                name=name,
-            ),
-        )
-
-def highlight_state(fig, hovered_state, trace_name):
-    """
-    Adds a highlight trace for a hovered state to the figure.
-    """
-    hovered_geometry = None
-    for feature in us_states['features']:
-        if feature['properties']['name'] == hovered_state:
-            hovered_geometry = feature['geometry']
-            break
-
-    if hovered_geometry and hovered_geometry['type'] == 'Polygon':
-        for coords in hovered_geometry['coordinates']:
-            fig.add_trace(
-                go.Scattermapbox(
-                    lon=[point[0] for point in coords],
-                    lat=[point[1] for point in coords],
-                    mode='lines',
-                    line=dict(color='lightgrey', width=1),
-                    hoverinfo='skip',
-                    opacity=0.6,
-                    name=trace_name,
-                )
-            )
-    elif hovered_geometry and hovered_geometry['type'] == 'MultiPolygon':
-        for polygon in hovered_geometry['coordinates']:
-            for coords in polygon:
-                fig.add_trace(
-                    go.Scattermapbox(
-                        lon=[point[0] for point in coords],
-                        lat=[point[1] for point in coords],
-                        mode='lines',
-                        line=dict(color='lightgrey', width=1),
-                        hoverinfo='skip',
-                        opacity=0.6,
-                        name=trace_name,
-                    )
-                )
-    fig.update_layout(hovermode='closest', transition={'duration': 500, 'easing': 'elastic-in-out'})
+    return fig, bar, zoom_data, state_selected, popup_style, popup_details
 
 if __name__ == '__main__':
     app.run_server(debug=True)
