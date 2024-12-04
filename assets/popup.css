@@ -1,3 +1,5 @@
+/* assets/style.css */
+
 /* Reset some default styles */
 body, html {
     margin: 0;
@@ -16,11 +18,11 @@ body, html {
 .popup-sidebar {
     width: 300px; /* Width of the sidebar */
     background-color: #2f2f2f; /* Dark grey background */
-    border-right: 1px solid #ccc;
+    color: #ffffff; /* Text color */
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
-    transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    transition: transform 0.3s ease-in-out;
     transform: translateX(-100%); /* Hidden by default */
     position: fixed; /* Stay fixed on the screen */
     left: 0;
@@ -43,8 +45,7 @@ body, html {
 
 /* Close Button Styling */
 #close-popup {
-    display: block;
-    margin: 20px auto 0;
+    margin-top: 20px;
     padding: 10px 20px;
     background-color: #ff4c4c; /* Red color for visibility */
     color: white;
@@ -86,16 +87,10 @@ body, html {
     color: #333333;
 }
 
-/* Slider Styling */
-.popup-content .dcc-slider {
-    margin: 20px 0;
-    color: #ffffff; /* Slider labels and marks */
-}
-
 /* Popup Details Styling */
 #popup-details p {
     margin: 5px 0;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 /* Responsive Adjustments */
