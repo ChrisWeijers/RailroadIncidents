@@ -22,7 +22,7 @@ def get_data():
 
     fips_codes = fips_codes[['fips', 'state_name']].copy()
     # Clean data
-    df = df.dropna(subset=['Latitude', 'Longitud']).drop_duplicates(subset=['Latitude', 'Longitud'])
+    df = df.dropna(subset=['Latitude', 'Longitud'])
 
     # Correct the years
     df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
