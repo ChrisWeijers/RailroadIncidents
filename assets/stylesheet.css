@@ -2,91 +2,149 @@ body, html {
     margin: 0;
     padding: 0;
     height: 100%;
-    font-family: Arial, sans-serif;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background-color: #262626;
+    color: #ffffff;
 }
 
-/* Main container uses Flexbox */
 .main-container {
     display: flex;
-    height: 100vh; /* Full viewport height */
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* Popup Sidebar Styling */
+/* Sidebar Styling */
 .popup-sidebar {
-    width: 300px; /* Width of the sidebar */
-    height: 400px;
-    background-color: #090909; /* Dark grey background */
-    border-radius: 1em;
-    color: #ffffff; /* Text color */
+    width: 30%; /* Already widened for better slider visibility */
+    height: 100vh;
+    background: #1a1a1a; /* Slightly lighter than pure black for contrast */
     padding: 20px;
     box-sizing: border-box;
     transition: transform 0.3s ease-in-out;
-    transform: translateX(-100%); /* Hidden by default */
-    position: fixed; /* Stay fixed on the screen */
-    z-index: 1000; /* Above main content */
+    transform: translateX(-100%);
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
-/* Show the sidebar when active */
-.popup-sidebar[style*="display: block"] {
+.popup-sidebar.open {
     transform: translateX(0);
+    pointer-events: auto;
 }
 
-/* Popup Content Styling */
+/* Popup Content */
 .popup-content {
     display: flex;
     flex-direction: column;
+    gap: 20px; /* Space between elements */
 }
 
-/* Close Button Styling */
-#close-popup {
-    margin-top: 20px;
-    padding: 10px 20px;
-    background-color: #ff4c4c; /* Red color for visibility */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 14px;
-    cursor: pointer;
-    text-align: center;
+/* Title and details */
+#state-popup h3 {
+    margin-top: 0;
+    font-size: 1.4em;
+    font-weight: 600;
+    color: #ffffff;
 }
 
-#close-popup:hover {
-    background-color: #ff0000;
+#popup-details p {
+    margin: 5px 0;
+    font-size: 1.1em;
+    line-height: 1.4em;
+    color: #e0e0e0;
 }
 
-/* Content Area Styling */
+/* Labels for sliders */
+.popup-content label {
+    font-size: 1.1em;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #bfbfbf;
+}
+
+/* Content Area */
 .content-area {
-    flex: 1; /* Take up remaining space */
-    margin-left: 0; /* No margin when sidebar is hidden */
+    flex: 1;
+    margin-left: 0;
     transition: margin-left 0.3s ease-in-out;
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
+    background: #202020;
+    color: #ffffff;
 }
 
-/* Adjust content area when sidebar is visible */
-.popup-sidebar[style*="display: block"] ~ .content-area {
-    margin-left: 300px; /* Same as sidebar width */
+.popup-sidebar.open ~ .content-area {
+    margin-left: 30%;
 }
 
-/* Graph Containers */
 .graph-container {
     margin-top: 20px;
-    border-radius: 5em;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 /* Header Styling */
 .content-area h1 {
     margin-bottom: 20px;
     text-align: center;
+    font-size: 1.8em;
     color: #ffffff;
 }
 
-/* Popup Details Styling */
-#popup-details p {
-    margin: 5px 0;
-    font-size: 16px;
+/* Slider Styling */
+/* Dash sliders are based on rc-slider classes */
+
+/* The rail (background) of the slider */
+.rc-slider-rail {
+    background-color: #555555 !important;
+    height: 6px !important;
+    border-radius: 3px;
+}
+
+/* The track (selected range) of the slider */
+.rc-slider-track {
+    background-color: #00bfff !important; /* A bright sky-blue for contrast */
+    height: 6px !important;
+    border-radius: 3px;
+}
+
+/* The handle (the draggable circle) */
+.rc-slider-handle {
+    border: 2px solid #00bfff !important;
+    height: 18px !important;
+    width: 18px !important;
+    margin-top: -7px !important;
+    background-color: #1a1a1a !important;
+    cursor: pointer;
+    box-shadow: none !important;
+}
+
+/* When handle is hovered or active */
+.rc-slider-handle:hover,
+.rc-slider-handle:active,
+.rc-slider-handle:focus {
+    border-color: #ffffff !important;
+}
+
+/* Slider marks (the numbers beneath the slider) */
+.rc-slider-mark-text {
+    font-size: 0.9em;
+    color: #cccccc !important;
+    white-space: nowrap;
+}
+
+/* Current selected marks could be highlighted if desired */
+.rc-slider-mark-text-active {
+    color: #ffffff !important;
+}
+
+/* Hide large numbers outside the main range if cluttered */
+.rc-slider-dot {
+    display: none;
 }
 
 /* Responsive Adjustments */
@@ -95,11 +153,24 @@ body, html {
         width: 100%;
     }
 
-    .popup-sidebar[style*="display: block"] ~ .content-area {
+    .popup-sidebar.open ~ .content-area {
         margin-left: 0;
     }
 
     .content-area {
         padding: 10px;
+    }
+
+    #state-popup h3 {
+        font-size: 1.2em;
+    }
+
+    .popup-content label,
+    #popup-details p {
+        font-size: 1em;
+    }
+
+    .content-area h1 {
+        font-size: 1.5em;
     }
 }

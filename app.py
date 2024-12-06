@@ -5,24 +5,32 @@ from GUI.plots import Map, BarChart
 
 df, states_center, state_count, us_states = get_data()
 
+# Ensure these columns exist and are numeric.
+# If they differ in your dataset, adjust accordingly.
+year_min = int(df['corrected_year'].min())
+year_max = int(df['corrected_year'].max())
+
+month_min = int(df['IMO'].min())
+month_max = int(df['IMO'].max())
+
+damage_min = df['ACCDMG'].min()
+damage_max = 3500000
+
+injuries_min = df['TOTINJ'].min()
+injuries_max = 400
+
+speed_min = df['TRNSPD'].min()
+speed_max = df['TRNSPD'].max()
+
 app = Dash(__name__)
 app.title = 'Railroad Dashboard'
-
-# External stylesheet (assuming you saved the provided CSS as 'assets/style.css')
-# Dash automatically serves files placed in the 'assets' directory.
-external_stylesheets = [
-    # If you placed the CSS in the assets folder, Dash will load it automatically.
-    # If you placed it elsewhere, provide the URL or static path here.
-]
 
 app.layout = html.Div(
     className='main-container',
     children=[
-        # Sidebar: now we control it using inline style
         html.Div(
             id="popup-sidebar",
             className="popup-sidebar",
-            style={'display': 'none'},  # start hidden
             children=[
                 html.Div(
                     id="state-popup",
@@ -30,19 +38,96 @@ app.layout = html.Div(
                     children=[
                         html.H3(id="popup-title"),
                         html.Div(id="popup-details"),
-                        html.Button("Close", id="close-popup"),
+
+                        # Year Range Slider
+                        html.Label("Select Year Range"),
+                        dcc.RangeSlider(
+                            id='year-slider',
+                            min=year_min,
+                            max=year_max,
+                            value=[year_min, year_max],
+                            marks={str(y): str(y) for y in range(year_min, year_max+1, 2)},
+                            step=1
+                        ),
+
+                        # Month Slider
+                        html.Label("Select Month"),
+                        dcc.RangeSlider(
+                            id='month-slider',
+                            min=month_min,
+                            max=month_max,
+                            value=[month_min, month_max],
+                            marks={str(m): str(m) for m in range(month_min, month_max+1)},
+                            step=1
+                        ),
+
+                        # Damage Slider
+                        html.Label("Select Damage Range"),
+                        dcc.RangeSlider(
+                            id='damage-slider',
+                            min=damage_min,
+                            max=damage_max,
+                            value=[damage_min, damage_max],
+                            marks={
+                                str(int(d)): str(int(d)) for d in [
+                                    damage_min,
+                                    (damage_min+damage_max)//2,
+                                    damage_max
+                                ]
+                            },
+                            step=(damage_max - damage_min)/100.0 if damage_max > damage_min else 1
+                        ),
+
+                        # Injuries Slider
+                        html.Label("Select Injuries Range"),
+                        dcc.RangeSlider(
+                            id='injuries-slider',
+                            min=injuries_min,
+                            max=injuries_max,
+                            value=[injuries_min, injuries_max],
+                            marks={
+                                str(int(i)): str(int(i)) for i in [
+                                    injuries_min,
+                                    (injuries_min+injuries_max)//2,
+                                    injuries_max
+                                ]
+                            },
+                            step=1
+                        ),
+
+                        # Speed Slider
+                        html.Label("Select Speed Range"),
+                        dcc.RangeSlider(
+                            id='speed-slider',
+                            min=speed_min,
+                            max=speed_max,
+                            value=[speed_min, speed_max],
+                            marks={
+                                str(int(s)): str(int(s)) for s in [
+                                    speed_min,
+                                    (speed_min+speed_max)//2,
+                                    speed_max
+                                ]
+                            },
+                            step=1
+                        ),
                     ],
                 )
             ]
         ),
-        # Main content area
+
         html.Div(
             className='content-area',
             children=[
                 dcc.Store(id='selected-state', storage_type='memory'),
-                dcc.Store(id='manual-zoom', storage_type='memory',
-                          data={'zoom': 3, 'center': {'lat': 39.8282, 'lon': -98.5795}}),
+                dcc.Store(
+                    id='manual-zoom',
+                    storage_type='memory',
+                    data={'zoom': 3, 'center': {'lat': 40.003, 'lon': -102.0517}}
+                ),
+
                 html.H1("Interactive Railroad Accidents by State", style={"textAlign": "center"}),
+
                 dcc.Graph(
                     id='crash-map',
                     className='graph-container',
@@ -50,8 +135,9 @@ app.layout = html.Div(
                         'scrollZoom': True,
                         'doubleClick': 'reset',
                         'displayModeBar': True,
-                    },
+                    }
                 ),
+
                 dcc.Graph(
                     id='barchart',
                     className='graph-container'
@@ -61,10 +147,9 @@ app.layout = html.Div(
     ]
 )
 
-
 @app.callback(
     [
-        Output('popup-sidebar', 'style'),
+        Output('popup-sidebar', 'className'),
         Output('manual-zoom', 'data'),
         Output('selected-state', 'data'),
         Output('popup-title', 'children'),
@@ -74,45 +159,28 @@ app.layout = html.Div(
         Input('crash-map', 'relayoutData'),
         Input('crash-map', 'clickData'),
         Input('barchart', 'clickData'),
-        Input('close-popup', 'n_clicks')
     ],
     [
         State('manual-zoom', 'data'),
         State('selected-state', 'data')
     ]
 )
-def handle_map_interactions(relayout_data, map_click, bar_click, close_click, current_zoom_state, current_selected):
+def handle_interactions(relayout_data, map_click, bar_click, current_zoom_state, current_selected):
     ctx = callback_context
-    if not ctx.triggered:
-        # No triggers yet
-        return {'display': 'none'}, current_zoom_state, current_selected, "", ""
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
-    trigger_id, trigger_prop = ctx.triggered[0]['prop_id'].split('.')
-
-    default_view = {
-        'zoom': 3,
-        'center': {'lat': 39.8282, 'lon': -98.5795}
-    }
-
-    # 1. Handle Closing the Sidebar
-    if trigger_id == 'close-popup' and close_click:
-        # Reset selected state and hide sidebar
-        return {'display': 'none'}, default_view, None, "", ""
-
-    # 2. Identify if a New State Was Clicked
     clicked_state = None
     if trigger_id == 'crash-map' and map_click:
         point_data = map_click['points'][0]
-        clicked_state = point_data.get('customdata') or \
-                        (point_data.get('text', '').split('<br>')[0] if point_data.get('text') else None)
+        clicked_state = point_data.get('customdata') or (
+            point_data.get('text', '').split('<br>')[0] if point_data.get('text') else None
+        )
     elif trigger_id == 'barchart' and bar_click:
         clicked_state = bar_click['points'][0].get('label') or bar_click['points'][0].get('x')
 
-    # Update selected_state if a new state was clicked
     if clicked_state:
         current_selected = clicked_state
 
-    # 3. Update Manual Zoom/Center on Map Movement
     if trigger_id == 'crash-map' and relayout_data:
         new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state['zoom'])
         new_center = {
@@ -123,12 +191,7 @@ def handle_map_interactions(relayout_data, map_click, bar_click, close_click, cu
         }
         current_zoom_state = {'zoom': new_zoom, 'center': new_center}
 
-    # 4. Decide Whether to Show the Sidebar
-    # Only show the sidebar if:
-    # - We have a currently selected state (current_selected not None)
-    # - The trigger event was actually a click on a state (map_click or bar_click)
-    # If the trigger is relayoutData (map movement), do not show the sidebar.
-    if current_selected and (trigger_id == 'crash-map' or trigger_id == 'barchart') and clicked_state is not None:
+    if current_selected:
         if current_selected in state_count['state_name'].values:
             crash_count = state_count[state_count['state_name'] == current_selected]['crash_count'].values[0]
             popup_title = current_selected
@@ -136,33 +199,36 @@ def handle_map_interactions(relayout_data, map_click, bar_click, close_click, cu
         else:
             popup_title = current_selected
             popup_details = html.Div([html.P("No data available")])
-        sidebar_style = {'display': 'block'}
+        sidebar_class = "popup-sidebar open"
     else:
-        # If no new state clicked or trigger is not a click event, keep sidebar hidden
-        sidebar_style = {'display': 'none'}
         popup_title = ""
         popup_details = ""
+        sidebar_class = "popup-sidebar"
 
-    return sidebar_style, current_zoom_state, current_selected, popup_title, popup_details
-
-
-
+    return sidebar_class, current_zoom_state, current_selected, popup_title, popup_details
 
 @app.callback(
     [Output('crash-map', 'figure'),
      Output('barchart', 'figure')],
-    [Input('crash-map', 'hoverData'),
-     Input('barchart', 'hoverData'),
-     Input('selected-state', 'data'),
-     Input('crash-map', 'relayoutData'),
-     Input('manual-zoom', 'data')]
+    [
+        Input('crash-map', 'hoverData'),
+        Input('barchart', 'hoverData'),
+        Input('selected-state', 'data'),
+        Input('crash-map', 'relayoutData'),
+        Input('manual-zoom', 'data'),
+        Input('year-slider', 'value'),
+        Input('month-slider', 'value'),
+        Input('damage-slider', 'value'),
+        Input('injuries-slider', 'value'),
+        Input('speed-slider', 'value')
+    ]
 )
-def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
+def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom,
+               year_range, month_range, damage_range, injuries_range, speed_range):
     bar = BarChart(state_count).create_barchart()
     us = Map(df, us_states, state_count, manual_zoom)
     fig = us.plot_map()
 
-    # Handle hover interactions (optional)
     hovered_state = None
     if hover_map:
         hovered_point = hover_map['points'][0]
@@ -174,16 +240,31 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
     if hovered_state:
         us.highlight_state(hovered_state, 'hoverstate')
 
-    # Preserve selected state highlight and points
+    # Filter data if a state is selected
     if selected_state:
-        df_state = df[df['state_name'] == selected_state]
-        us.highlight_state(selected_state, 'clickstate')
-        us.add_points(df_state, 'clickstate')
+        df_filtered = df[
+            (df['state_name'] == selected_state) &
+            (df['corrected_year'] >= year_range[0]) & (df['corrected_year'] <= year_range[1]) &
+            (df['IMO'] >= month_range[0]) & (df['IMO'] <= month_range[1]) &
+            (df['ACCDMG'] >= damage_range[0]) & (df['ACCDMG'] <= damage_range[1]) &
+            (df['TOTINJ'] >= injuries_range[0]) & (df['TOTINJ'] <= injuries_range[1]) &
+            (df['TRNSPD'] >= speed_range[0]) & (df['TRNSPD'] <= speed_range[1])
+        ]
 
-    # Add points if zoomed in sufficiently
+        us.highlight_state(selected_state, 'clickstate')
+        us.add_points(df_filtered, 'clickstate')
+
+    # If zoomed in sufficiently, also filter all points
     if relayout and 'mapbox.zoom' in relayout:
         if relayout['mapbox.zoom'] >= 4.5:
-            us.add_points(df, 'all_points')
+            df_all_filtered = df[
+                (df['corrected_year'] >= year_range[0]) & (df['corrected_year'] <= year_range[1]) &
+                (df['IMO'] >= month_range[0]) & (df['IMO'] <= month_range[1]) &
+                (df['ACCDMG'] >= damage_range[0]) & (df['ACCDMG'] <= damage_range[1]) &
+                (df['TOTINJ'] >= injuries_range[0]) & (df['TOTINJ'] <= injuries_range[1]) &
+                (df['TRNSPD'] >= speed_range[0]) & (df['TRNSPD'] <= speed_range[1])
+            ]
+            us.add_points(df_all_filtered, 'all_points')
 
     return fig, bar
 
