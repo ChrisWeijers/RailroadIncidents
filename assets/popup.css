@@ -1,53 +1,36 @@
-/* assets/style.css */
-
-/* Reset some default styles */
-body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    font-family: Arial, sans-serif;
-}
-
-/* Main container uses Flexbox */
-.main-container {
-    display: flex;
-    height: 100vh; /* Full viewport height */
-}
-
-/* Popup Sidebar Styling */
 .popup-sidebar {
-    width: 300px; /* Width of the sidebar */
-    background-color: #2f2f2f; /* Dark grey background */
-    color: #ffffff; /* Text color */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300px;
+    max-height: 90%; /* Avoid covering the entire viewport */
+    background-color: #2f2f2f;
+    color: #ffffff;
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
     transition: transform 0.3s ease-in-out;
-    transform: translateX(-100%); /* Hidden by default */
-    position: fixed; /* Stay fixed on the screen */
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1000; /* Above main content */
+    transform: translateX(-100%);
+    z-index: 1000; /* Ensure it is above map */
+    pointer-events: none; /* Prevent blocking map interactions when hidden */
 }
 
-/* Show the sidebar when active */
 .popup-sidebar[style*="display: block"] {
     transform: translateX(0);
+    pointer-events: auto; /* Allow interactions when visible */
 }
 
-/* Popup Content Styling */
-.popup-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+.content-area {
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 1; /* Ensure map stays below popup */
 }
 
-/* Close Button Styling */
 #close-popup {
     margin-top: 20px;
     padding: 10px 20px;
-    background-color: #ff4c4c; /* Red color for visibility */
+    background-color: #ff4c4c;
     color: white;
     border: none;
     border-radius: 5px;
@@ -60,47 +43,24 @@ body, html {
     background-color: #ff0000;
 }
 
-/* Content Area Styling */
-.content-area {
-    flex: 1; /* Take up remaining space */
-    margin-left: 0; /* No margin when sidebar is hidden */
-    transition: margin-left 0.3s ease-in-out;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
-}
-
-/* Adjust content area when sidebar is visible */
-.popup-sidebar[style*="display: block"] ~ .content-area {
-    margin-left: 300px; /* Same as sidebar width */
-}
-
-/* Graph Containers */
 .graph-container {
     margin-top: 20px;
 }
 
-/* Header Styling */
 .content-area h1 {
     margin-bottom: 20px;
     text-align: center;
     color: #333333;
 }
 
-/* Popup Details Styling */
 #popup-details p {
     margin: 5px 0;
     font-size: 16px;
 }
 
-/* Responsive Adjustments */
 @media (max-width: 768px) {
     .popup-sidebar {
         width: 100%;
-    }
-
-    .popup-sidebar[style*="display: block"] ~ .content-area {
-        margin-left: 0;
     }
 
     .content-area {

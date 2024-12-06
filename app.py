@@ -96,7 +96,7 @@ def handle_map_interactions(relayout_data, map_click, bar_click, close_click, cu
         popup = {'display': 'none'}
         return popup, default_view, None, "", ""
 
-    # Handle map view changes
+    # Handle map view changes (do NOT refresh the popup)
     if trigger_id == 'crash-map' and trigger_prop == 'relayoutData' and relayout_data:
         if 'mapbox.zoom' in relayout_data or 'mapbox.center' in relayout_data:
             new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state['zoom'])
@@ -106,9 +106,9 @@ def handle_map_interactions(relayout_data, map_click, bar_click, close_click, cu
                 'lon': relayout_data.get('mapbox.center', current_zoom_state['center'])['lon']
                 if 'mapbox.center' in relayout_data else current_zoom_state['center']['lon']
             }
-            return {'display': 'none'}, {'zoom': new_zoom, 'center': new_center}, current_selected, "", ""
+            return {'display': 'block'}, {'zoom': new_zoom, 'center': new_center}, current_selected, "", ""
 
-    # Handle clicks
+    # Handle clicks (only update popup when a state or bar chart is clicked)
     clicked_state = None
     if trigger_id == 'crash-map' and map_click:
         point_data = map_click['points'][0]
@@ -123,13 +123,11 @@ def handle_map_interactions(relayout_data, map_click, bar_click, close_click, cu
             # Prepare content for the popup
             crash_count = state_count[state_count['state_name'] == clicked_state]['crash_count'].values[0]
             popup_title = f"{clicked_state}"
-            popup_details = html.Div([
-                html.P(f"Total Crashes: {crash_count}"),
-                # Add more details here if needed
-            ])
+            popup_details = html.Div([html.P(f"Total Crashes: {crash_count}")])
             popup = {'display': 'block'}
             return popup, current_zoom_state, clicked_state, popup_title, popup_details
 
+    # If no specific interaction occurs, keep the current popup state
     return {'display': 'none'}, current_zoom_state, current_selected, "", ""
 
 
@@ -149,7 +147,7 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
     us = Map(df, us_states, state_count, manual_zoom)
     fig = us.plot_map()
 
-    # Handle hover interactions
+    # Handle hover interactions (optional highlighting)
     if hover_map or hover_bar:
         try:
             if hover_map:
@@ -165,19 +163,19 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
         except Exception as e:
             print(f"Error processing hover data: {e}")
 
-    # Handle selected state and points display
+    # Preserve selected state and popup on map movements
     if selected_state:
-        us.fig.update_layout(uirevision=True)
         df_state = df[df['state_name'] == selected_state]
         us.highlight_state(selected_state, 'clickstate')
         us.add_points(df_state, 'clickstate')
-        us.fig.update_layout(uirevision=False)
 
+    # Add points when zoom level is sufficient
     if relayout and 'mapbox.zoom' in relayout:
         if relayout['mapbox.zoom'] >= 4.5:
             us.add_points(df, 'all_points')
 
     return fig, bar
+
 
 
 if __name__ == '__main__':
