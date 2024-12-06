@@ -1,7 +1,7 @@
 from dash import Dash, dcc, html, callback_context
 from dash.dependencies import Input, Output, State
 from GUI.data import get_data
-from GUI.plots import Map, BarChart
+from GUI.plots import Map, BarChart, LineChart
 
 df, states_center, state_count, us_states = get_data()
 
@@ -54,6 +54,10 @@ app.layout = html.Div(
                 ),
                 dcc.Graph(
                     id='barchart',
+                    className='graph-container'
+                ),
+                dcc.Graph(
+                    id='linechart',
                     className='graph-container'
                 ),
             ]
@@ -159,6 +163,7 @@ def handle_map_interactions(relayout_data, map_click, bar_click, close_click, cu
 )
 def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom):
     bar = BarChart(state_count).create_barchart()
+    line = LineChart(state_count).create_linechart()
     us = Map(df, us_states, state_count, manual_zoom)
     fig = us.plot_map()
 
