@@ -144,3 +144,60 @@ class BarChart:
         )
 
         return self.bar
+
+class LineChart:
+    def __init__(self, state_count) -> None:
+        """
+        Initializes the LineChart with the provided DataFrame.
+
+        :param state_count: DataFrame containing incident data with at least 'year' and 'crash_count' columns.
+        :return: None
+        """
+        self.state_count = state_count
+
+    def create_linechart(self) -> go.Figure:
+        """
+        Creates a line chart showing the number of incidents per year.
+
+        :return: A Plotly Figure object representing the line chart.
+        """
+        # Aggregate crash counts per year
+        df_yearly = self.state_count.groupby('year')['crash_count'].sum().reset_index()
+
+        # Create the line chart
+        fig = px.line(
+            df_yearly,
+            x='year',
+            y='crash_count',
+            title='Incidents per Year',
+            labels={'year': 'Year', 'crash_count': 'Number of Crashes'},
+            markers=True,  # Adds markers to each data point
+            color_discrete_sequence=['#1f77b4']  # You can choose any color you prefer
+        )
+
+        # Update hover information
+        fig.update_traces(
+            hovertemplate="<b>Year %{x}</b><br>Crashes: %{y:,}<extra></extra>"
+        )
+
+        # Update layout for consistent styling
+        fig.update_layout(
+            plot_bgcolor='rgba(0, 0, 0, 0)',  # Transparent background
+            paper_bgcolor='rgba(0, 0, 0, 0)',  # Transparent background
+            font=dict(color='grey', size=12),
+            title_font=dict(color='grey'),
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='lightgrey'
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='lightgrey'
+            ),
+            hovermode='x unified'  # Makes hover effects consistent
+        )
+
+        # Optional: Add transition for smooth updates
+        fig.update_layout(transition={'duration': 500, 'easing': 'elastic-in-out'})
+
+        return fig
