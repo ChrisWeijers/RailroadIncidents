@@ -15,7 +15,7 @@ body, html {
 
 /* Sidebar Styling */
 .popup-sidebar {
-    width: 30%; /* Already widened for better slider visibility */
+    width: 25%; /* Already widened for better slider visibility */
     height: 100vh;
     background: #1a1a1a; /* Slightly lighter than pure black for contrast */
     padding: 20px;
