@@ -5,19 +5,25 @@ body, html {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background-color: #262626;
     color: #ffffff;
+    /* Removed responsive units like vh */
+    width: 1000px;
+    height: 700px;
+    overflow: hidden;
 }
 
 .main-container {
     display: flex;
-    height: 100vh;
+    /* Use fixed height instead of 100vh */
+    width: 1000px;
+    height: 700px;
     overflow: hidden;
 }
 
 /* Sidebar Styling */
 .popup-sidebar {
-    width: 25%; /* Already widened for better slider visibility */
-    height: 100vh;
-    background: #1a1a1a; /* Slightly lighter than pure black for contrast */
+    width: 250px; /* Fixed width */
+    height: 700px; /* Fixed height to match container */
+    background: #1a1a1a;
     padding: 20px;
     box-sizing: border-box;
     transition: transform 0.3s ease-in-out;
@@ -39,27 +45,27 @@ body, html {
 .popup-content {
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Space between elements */
+    gap: 20px;
 }
 
 /* Title and details */
 #state-popup h3 {
     margin-top: 0;
-    font-size: 1.4em;
+    font-size: 20px;
     font-weight: 600;
     color: #ffffff;
 }
 
 #popup-details p {
     margin: 5px 0;
-    font-size: 1.1em;
-    line-height: 1.4em;
+    font-size: 16px;
+    line-height: 22px;
     color: #e0e0e0;
 }
 
 /* Labels for sliders */
 .popup-content label {
-    font-size: 1.1em;
+    font-size: 16px;
     font-weight: 500;
     margin-bottom: 5px;
     color: #bfbfbf;
@@ -75,44 +81,44 @@ body, html {
     overflow-y: auto;
     background: #202020;
     color: #ffffff;
+    /* Fixed width and height for consistency */
+    width: 750px;
+    height: 700px;
 }
 
 .popup-sidebar.open ~ .content-area {
-    margin-left: 30%;
+    margin-left: 250px; /* Matches sidebar width */
 }
 
 .graph-container {
     margin-top: 20px;
     border-radius: 10px;
     overflow: hidden;
+    width: 100%;
+    height: 400px; /* Example fixed size */
 }
 
 /* Header Styling */
 .content-area h1 {
     margin-bottom: 20px;
     text-align: center;
-    font-size: 1.8em;
+    font-size: 24px;
     color: #ffffff;
 }
 
 /* Slider Styling */
-/* Dash sliders are based on rc-slider classes */
-
-/* The rail (background) of the slider */
 .rc-slider-rail {
     background-color: #555555 !important;
     height: 6px !important;
     border-radius: 3px;
 }
 
-/* The track (selected range) of the slider */
 .rc-slider-track {
-    background-color: #00bfff !important; /* A bright sky-blue for contrast */
+    background-color: #00bfff !important;
     height: 6px !important;
     border-radius: 3px;
 }
 
-/* The handle (the draggable circle) */
 .rc-slider-handle {
     border: 2px solid #00bfff !important;
     height: 18px !important;
@@ -123,54 +129,24 @@ body, html {
     box-shadow: none !important;
 }
 
-/* When handle is hovered or active */
 .rc-slider-handle:hover,
 .rc-slider-handle:active,
 .rc-slider-handle:focus {
     border-color: #ffffff !important;
 }
 
-/* Slider marks (the numbers beneath the slider) */
 .rc-slider-mark-text {
-    font-size: 0.9em;
+    font-size: 14px;
     color: #cccccc !important;
     white-space: nowrap;
 }
 
-/* Current selected marks could be highlighted if desired */
 .rc-slider-mark-text-active {
     color: #ffffff !important;
 }
 
-/* Hide large numbers outside the main range if cluttered */
 .rc-slider-dot {
     display: none;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .popup-sidebar {
-        width: 100%;
-    }
-
-    .popup-sidebar.open ~ .content-area {
-        margin-left: 0;
-    }
-
-    .content-area {
-        padding: 10px;
-    }
-
-    #state-popup h3 {
-        font-size: 1.2em;
-    }
-
-    .popup-content label,
-    #popup-details p {
-        font-size: 1em;
-    }
-
-    .content-area h1 {
-        font-size: 1.5em;
-    }
-}
+/* Removed @media queries entirely */
