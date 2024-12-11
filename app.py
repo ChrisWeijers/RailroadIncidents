@@ -148,7 +148,6 @@ app.layout = html.Div(
 
 @app.callback(
     [
-        Output('popup-sidebar', 'className'),
         Output('manual-zoom', 'data'),
         Output('selected-state', 'data'),
         Output('popup-title', 'children'),
@@ -198,13 +197,11 @@ def handle_interactions(relayout_data, map_click, bar_click, current_zoom_state,
         else:
             popup_title = current_selected
             popup_details = html.Div([html.P("No data available")])
-        sidebar_class = "popup-sidebar open"
     else:
         popup_title = ""
         popup_details = ""
-        sidebar_class = "popup-sidebar"
 
-    return sidebar_class, current_zoom_state, current_selected, popup_title, popup_details
+    return current_zoom_state, current_selected, popup_title, popup_details
 
 @app.callback(
     [Output('crash-map', 'figure'),
@@ -239,7 +236,6 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom,
     if hovered_state:
         us.highlight_state(hovered_state, 'hoverstate')
 
-    # Filter data if a state is selected
     if selected_state:
         df_filtered = df[
             (df['state_name'] == selected_state) &
@@ -253,7 +249,6 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom,
         us.highlight_state(selected_state, 'clickstate')
         us.add_points(df_filtered, 'clickstate')
 
-    # If zoomed in sufficiently, also filter all points
     if relayout and 'mapbox.zoom' in relayout:
         if relayout['mapbox.zoom'] >= 4.5:
             df_all_filtered = df[

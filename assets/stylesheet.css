@@ -3,7 +3,7 @@ body, html {
     padding: 0;
     height: 100%;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #262626;
+    background-color: #2b2b2b;
     color: #ffffff;
 }
 
@@ -15,41 +15,41 @@ body, html {
 
 /* Sidebar Styling */
 .popup-sidebar {
-    width: 25%; /* Already widened for better slider visibility */
+    width: 25%;
     height: 100vh;
-    background: #1a1a1a; /* Slightly lighter than pure black for contrast */
+    background: #1e1e1e; /* Dark background for sidebar */
     padding: 20px;
     box-sizing: border-box;
-    transition: transform 0.3s ease-in-out;
-    transform: translateX(-100%);
     position: fixed;
     z-index: 1000;
-    pointer-events: none;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    border-right: 1px solid #333333; /* Subtle border for separation */
+    box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.5); /* Add a shadow for depth */
 }
 
-.popup-sidebar.open {
-    transform: translateX(0);
-    pointer-events: auto;
-}
-
-/* Popup Content */
+/* Sidebar Content */
 .popup-content {
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Space between elements */
+    gap: 20px; /* Spacing between elements */
+    overflow-y: auto; /* Enable scrolling if content overflows */
+    max-height: 100%;
 }
 
-/* Title and details */
+/* Title Styling */
 #state-popup h3 {
     margin-top: 0;
-    font-size: 1.4em;
+    font-size: 1.6em;
     font-weight: 600;
     color: #ffffff;
+    text-align: center;
+    border-bottom: 2px solid #444444; /* Underline for title */
+    padding-bottom: 10px;
 }
 
+/* Details Styling */
 #popup-details p {
     margin: 5px 0;
     font-size: 1.1em;
@@ -65,36 +65,6 @@ body, html {
     color: #bfbfbf;
 }
 
-/* Content Area */
-.content-area {
-    flex: 1;
-    margin-left: 0;
-    transition: margin-left 0.3s ease-in-out;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
-    background: #202020;
-    color: #ffffff;
-}
-
-.popup-sidebar.open ~ .content-area {
-    margin-left: 30%;
-}
-
-.graph-container {
-    margin-top: 20px;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-/* Header Styling */
-.content-area h1 {
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 1.8em;
-    color: #ffffff;
-}
-
 /* Slider Styling */
 /* Dash sliders are based on rc-slider classes */
 
@@ -107,20 +77,21 @@ body, html {
 
 /* The track (selected range) of the slider */
 .rc-slider-track {
-    background-color: #00bfff !important; /* A bright sky-blue for contrast */
+    background-color: #00bfff !important; /* Bright contrast color */
     height: 6px !important;
     border-radius: 3px;
 }
 
-/* The handle (the draggable circle) */
+/* The handle (draggable circle) */
 .rc-slider-handle {
     border: 2px solid #00bfff !important;
     height: 18px !important;
     width: 18px !important;
     margin-top: -7px !important;
-    background-color: #1a1a1a !important;
+    background-color: #1e1e1e !important;
     cursor: pointer;
-    box-shadow: none !important;
+    box-shadow: 0px 0px 6px rgba(0, 191, 255, 0.8); /* Soft glowing outline */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* When handle is hovered or active */
@@ -128,6 +99,12 @@ body, html {
 .rc-slider-handle:active,
 .rc-slider-handle:focus {
     border-color: #ffffff !important;
+    box-shadow: 0px 0px 8px rgba(255, 255, 255, 0.8); /* Slightly brighter glow */
+}
+
+/* Hide the slider dots (white dots) */
+.rc-slider-dot {
+    display: none !important;
 }
 
 /* Slider marks (the numbers beneath the slider) */
@@ -137,32 +114,59 @@ body, html {
     white-space: nowrap;
 }
 
-/* Current selected marks could be highlighted if desired */
+/* Current selected marks (if highlighted) */
 .rc-slider-mark-text-active {
     color: #ffffff !important;
 }
 
-/* Hide large numbers outside the main range if cluttered */
-.rc-slider-dot {
-    display: none;
+
+/* Content Area */
+.content-area {
+    flex: 1;
+    margin-left: 25%;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    background: #282828; /* Slightly lighter background */
+    color: #ffffff;
+}
+
+/* Graph Styling */
+.graph-container {
+    margin-top: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #1e1e1e; /* Match sidebar background */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5); /* Add depth */
+}
+
+/* Header Styling */
+.content-area h1 {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.8em;
+    color: #ffffff;
+    border-bottom: 2px solid #444444; /* Underline for emphasis */
+    padding-bottom: 10px;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .popup-sidebar {
         width: 100%;
-    }
-
-    .popup-sidebar.open ~ .content-area {
-        margin-left: 0;
+        height: auto;
+        position: relative;
+        border-right: none;
+        box-shadow: none;
     }
 
     .content-area {
+        margin-left: 0;
         padding: 10px;
     }
 
     #state-popup h3 {
-        font-size: 1.2em;
+        font-size: 1.4em;
     }
 
     .popup-content label,
