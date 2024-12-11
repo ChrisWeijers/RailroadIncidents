@@ -34,10 +34,13 @@ body, html {
     display: flex;
     flex-direction: column;
     gap: 20px; /* Spacing between elements */
-    overflow-y: auto; /* Enable scrolling if content overflows */
+    overflow-y: scroll; /* Enable scrolling if content overflows */
     max-height: 100%;
 }
 
+.popup-content::-webkit-scrollbar {
+    display: none; /* Hide the scrollbar */
+}
 /* Title Styling */
 #state-popup h3 {
     margin-top: 0;

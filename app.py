@@ -6,14 +6,14 @@ from GUI.plots import Map, BarChart
 df, states_center, state_count, us_states = get_data()
 
 # Ensure these columns exist and are numeric. Adjust if needed.
-year_min = int(df['corrected_year'].min())
+year_min = 2000
 year_max = int(df['corrected_year'].max())
 
 month_min = int(df['IMO'].min())
 month_max = int(df['IMO'].max())
 
 damage_min = df['ACCDMG'].min()
-damage_max = 3500000
+damage_max = 35000000
 
 injuries_min = df['TOTINJ'].min()
 injuries_max = 400
@@ -31,10 +31,16 @@ app.layout = html.Div(
             id="popup-sidebar",
             className="popup-sidebar",
             children=[
+                dcc.Graph(
+                    id='barchart',
+                    config={'displayModeBar': False},
+                    style={'display': 'block'}
+                ),
                 html.Div(
                     id="state-popup",
                     className="popup-content",
                     children=[
+
                         html.H3(id="popup-title"),
                         html.Div(id="popup-details"),
 
@@ -45,7 +51,7 @@ app.layout = html.Div(
                             min=year_min,
                             max=year_max,
                             value=[year_min, year_max],
-                            marks={str(y): str(y) for y in range(year_min, year_max+1, 2)},
+                            marks={str(y): str(y) for y in range(year_min, year_max + 1, 4)},
                             step=1
                         ),
 
@@ -56,7 +62,7 @@ app.layout = html.Div(
                             min=month_min,
                             max=month_max,
                             value=[month_min, month_max],
-                            marks={str(m): str(m) for m in range(month_min, month_max+1)},
+                            marks={str(m): str(m) for m in range(month_min, month_max + 1)},
                             step=1
                         ),
 
@@ -70,11 +76,11 @@ app.layout = html.Div(
                             marks={
                                 str(int(d)): str(int(d)) for d in [
                                     damage_min,
-                                    (damage_min+damage_max)//2,
+                                    (damage_min + damage_max) // 2,
                                     damage_max
                                 ]
                             },
-                            step=(damage_max - damage_min)/100.0 if damage_max > damage_min else 1
+                            step=(damage_max - damage_min) / 100.0 if damage_max > damage_min else 1
                         ),
 
                         # Injuries Slider
@@ -87,7 +93,7 @@ app.layout = html.Div(
                             marks={
                                 str(int(i)): str(int(i)) for i in [
                                     injuries_min,
-                                    (injuries_min+injuries_max)//2,
+                                    (injuries_min + injuries_max) // 2,
                                     injuries_max
                                 ]
                             },
@@ -104,7 +110,7 @@ app.layout = html.Div(
                             marks={
                                 str(int(s)): str(int(s)) for s in [
                                     speed_min,
-                                    (speed_min+speed_max)//2,
+                                    (speed_min + speed_max) // 2,
                                     speed_max
                                 ]
                             },
@@ -125,33 +131,28 @@ app.layout = html.Div(
                     data={'zoom': 3, 'center': {'lat': 40.003, 'lon': -102.0517}}
                 ),
 
-                html.H1("Interactive Railroad Accidents by State", style={"textAlign": "center"}),
-
                 dcc.Graph(
                     id='crash-map',
                     className='graph-container',
                     config={
                         'scrollZoom': True,
                         'doubleClick': 'reset',
-                        'displayModeBar': True,
+                        'displayModeBar': False,
                     }
-                ),
-
-                dcc.Graph(
-                    id='barchart',
-                    className='graph-container'
                 ),
             ]
         )
     ]
 )
 
+
 @app.callback(
     [
         Output('manual-zoom', 'data'),
         Output('selected-state', 'data'),
         Output('popup-title', 'children'),
-        Output('popup-details', 'children')
+        Output('popup-details', 'children'),
+        Output('barchart', 'style'),
     ],
     [
         Input('crash-map', 'relayoutData'),
@@ -201,7 +202,10 @@ def handle_interactions(relayout_data, map_click, bar_click, current_zoom_state,
         popup_title = ""
         popup_details = ""
 
-    return current_zoom_state, current_selected, popup_title, popup_details
+    barchart_style = {'display': 'none' if current_selected else 'block'}
+
+    return current_zoom_state, current_selected, popup_title, popup_details, barchart_style
+
 
 @app.callback(
     [Output('crash-map', 'figure'),
@@ -244,7 +248,7 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom,
             (df['ACCDMG'] >= damage_range[0]) & (df['ACCDMG'] <= damage_range[1]) &
             (df['TOTINJ'] >= injuries_range[0]) & (df['TOTINJ'] <= injuries_range[1]) &
             (df['TRNSPD'] >= speed_range[0]) & (df['TRNSPD'] <= speed_range[1])
-        ]
+            ]
 
         us.highlight_state(selected_state, 'clickstate')
         us.add_points(df_filtered, 'clickstate')
@@ -257,10 +261,11 @@ def update_map(hover_map, hover_bar, selected_state, relayout, manual_zoom,
                 (df['ACCDMG'] >= damage_range[0]) & (df['ACCDMG'] <= damage_range[1]) &
                 (df['TOTINJ'] >= injuries_range[0]) & (df['TOTINJ'] <= injuries_range[1]) &
                 (df['TRNSPD'] >= speed_range[0]) & (df['TRNSPD'] <= speed_range[1])
-            ]
+                ]
             us.add_points(df_all_filtered, 'all_points')
 
     return fig, bar
+
 
 if __name__ == '__main__':
     app.run_server(debug=True, dev_tools_ui=False)

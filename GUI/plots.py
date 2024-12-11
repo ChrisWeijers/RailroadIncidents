@@ -44,7 +44,7 @@ class Map:
                 zoom=zoom
             ),
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
-            height=900,
+            height=500,
             paper_bgcolor='darkgrey',
             font=dict(color='white', size=12),
             showlegend=False,
@@ -120,15 +120,20 @@ class BarChart:
     def create_barchart(self):
         # Create bar chart
         self.bar = px.bar(self.state_count,
-                          x='state_name',
-                          y='crash_count',
-                          title='States by Crash Count',
-                          labels={'state_name': 'State', 'crash_count': 'Crashes'},
+                          x='crash_count',
+                          y='state_name',
+                          text='state_name',
                           hover_data={'crash_count': True},
-                          color_discrete_sequence=['white'])
+                          color_discrete_sequence=['white'],
+                          orientation='h')
+
+        self.bar.update_yaxes(visible=False, showticklabels=False)
+        self.bar.update_xaxes(visible=False, showticklabels=False, range=(0, 9210))
 
         self.bar.update_traces(
-            hovertemplate="<b>%{x}</b><br>Crashes: %{y:,}<extra></extra>",
+            textfont=dict(color="white"),
+            textposition= 'outside',
+            hovertemplate="<b>%{x}</b><br>Crashes: %{x:,}<extra></extra>",
             hoverlabel=dict(
                 bgcolor="lightgrey",
                 bordercolor="grey",
@@ -139,8 +144,10 @@ class BarChart:
         self.bar.update_layout(
             plot_bgcolor='rgba(0, 0, 0, 0)',
             paper_bgcolor='rgba(0, 0, 0, 0)',
-            font_color='grey',
-            title_font_color='grey'
+            font_color='red',
+            title_font_color='red',
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            height=520,
         )
 
         return self.bar
