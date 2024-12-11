@@ -44,7 +44,6 @@ class Map:
                 zoom=zoom
             ),
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
-            height=500,
             paper_bgcolor='darkgrey',
             font=dict(color='white', size=12),
             showlegend=False,
@@ -147,7 +146,6 @@ class BarChart:
             font_color='red',
             title_font_color='red',
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
-            height=520,
         )
 
         return self.bar

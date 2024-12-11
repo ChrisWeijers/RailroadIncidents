@@ -31,15 +31,29 @@ app.layout = html.Div(
             id="popup-sidebar",
             className="popup-sidebar",
             children=[
-                dcc.Graph(
-                    id='barchart',
-                    config={'displayModeBar': False},
+                html.Div(
+                    id='barchart-button',
+                    className='arrow-button',
+                    children=[html.Div(className='arrow-down')],
                     style={'display': 'block'}
                 ),
+                dcc.Graph(
+                    id='barchart',
+                    className='barchart',
+                    config={'displayModeBar': False},
+                    style={'display': 'block'},
+                ),
+
                 html.Div(
                     id="state-popup",
                     className="popup-content",
+                    style={'display': 'none'},
                     children=[
+                        html.Div(
+                            id='sidebar-button',
+                            className='arrow-button',
+                            children=[html.Div(className='arrow')]
+                        ),
 
                         html.H3(id="popup-title"),
                         html.Div(id="popup-details"),
@@ -153,18 +167,24 @@ app.layout = html.Div(
         Output('popup-title', 'children'),
         Output('popup-details', 'children'),
         Output('barchart', 'style'),
+        Output('state-popup', 'style'),
+        Output('barchart-button', 'style')
     ],
     [
         Input('crash-map', 'relayoutData'),
         Input('crash-map', 'clickData'),
         Input('barchart', 'clickData'),
+        Input('sidebar-button', 'n_clicks'),
+        Input('barchart-button', 'n_clicks'),
+
     ],
     [
         State('manual-zoom', 'data'),
         State('selected-state', 'data')
     ]
 )
-def handle_interactions(relayout_data, map_click, bar_click, current_zoom_state, current_selected):
+def handle_interactions(relayout_data, map_click, bar_click, button_clicks, bar_button_clicks,
+                        current_zoom_state, current_selected):
     ctx = callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
@@ -202,9 +222,21 @@ def handle_interactions(relayout_data, map_click, bar_click, current_zoom_state,
         popup_title = ""
         popup_details = ""
 
-    barchart_style = {'display': 'none' if current_selected else 'block'}
+    if trigger_id == 'sidebar-button' and button_clicks:
+        barchart_style = {'display': 'block'}
+        sidebar_style = {'display': 'none'}
+        bar_button_style = {'display': 'block'}
+    elif trigger_id == 'barchart-button' and bar_button_clicks:
+        barchart_style = {'display': 'none'}
+        sidebar_style = {'display': 'block'}
+        bar_button_style = {'display': 'none'}
+    else:
+        sidebar_style = {'display': 'block' if current_selected else 'none'}
+        barchart_style = {'display': 'none' if current_selected else 'block'}
+        bar_button_style = {'display': 'none' if current_selected else 'block'}
 
-    return current_zoom_state, current_selected, popup_title, popup_details, barchart_style
+    return (current_zoom_state, current_selected, popup_title, popup_details, barchart_style,
+            sidebar_style, bar_button_style)
 
 
 @app.callback(
