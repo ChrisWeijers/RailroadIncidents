@@ -1,7 +1,26 @@
 # Changelog
 
-## 26 November 2024
+## 12 December 2024
+### Refactored (Bilgin)
+- Splitted up [`app.py`](app.py)
+  - [`app.py`](app.py) Still configures the whole dashboard by importing the necessary modules, but it readability has improved.
+  - [`config.py`](GUI/config.py) contains the configuration for the sliders of the filter module
+  - [`callbacks.py`](GUI/callbacks.py) contains all callbacks that handle updates for the dashboard
+  - [`layout.py`](GUI/layout.py) contains the HTML layout structure of the dashboard
 ### Added (Bilgin)
+- Added a `deselect` button when a state is selected
+  - When hovering over this button, it turns into red to indicate it clearly
+  - **Although the selection seems to return when zooming in or dragging the map around!!!**
+
+## 11 December 2024
+### Added (Chris)
+- Added button to sidebar to switch between the barchart and filters
+### Fixes (Chris)
+- Adjusted the dashboard such that it fits for different screen sizes
+- Fixed the barchart such that it is readable
+
+## 26 November 2024
+### Added (Bilgin) NOT USED ANYMORE
 - Added Rail_Mileposts dataset to the repository
 - Implemented Python script for crash and milepost data analysis including:
   - Data loading and cleaning functions for both crash and milepost datasets
