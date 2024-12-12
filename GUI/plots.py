@@ -1,15 +1,44 @@
 import plotly.express as px
 import plotly.graph_objects as go
+import pandas as pd
+from typing import Dict, Any, List
 
 
 class Map:
-    def __init__(self, df, us_states, state_count, manual_zoom):
+    """
+    A class to create and manage an interactive choropleth map using Plotly and Mapbox.
+
+    Attributes:
+        df (pd.DataFrame): The main DataFrame containing incident data.
+        us_states (Dict): GeoJSON data for US states.
+        state_count (pd.DataFrame): DataFrame containing the count of incidents per state.
+        manual_zoom (Dict): Dictionary specifying manual zoom level and center for the map.
+        fig (go.Figure): The Plotly figure object for the map.
+    """
+
+    def __init__(self, df: pd.DataFrame, us_states: Dict[str, Any], state_count: pd.DataFrame,
+                 manual_zoom: Dict[str, Any]) -> None:
+        """
+        Initializes the Map object with necessary data and initial zoom settings.
+
+        Args:
+            df (pd.DataFrame): The main DataFrame containing the accident data.
+            us_states (Dict[str, Any]): GeoJSON data for the US states.
+            state_count (pd.DataFrame): DataFrame containing crash counts per state.
+            manual_zoom (Dict[str, Any]): Initial map zoom and center settings.
+        """
         self.df = df
         self.us_states = us_states
         self.state_count = state_count
         self.manual_zoom = manual_zoom
 
-    def plot_map(self):
+    def plot_map(self) -> go.Figure:
+        """
+        Generates a choropleth map of the United States, showing crash counts by state.
+
+        Returns:
+            go.Figure: The Plotly figure object representing the choropleth map.
+        """
         self.fig = go.Figure()
 
         self.fig.add_trace(
@@ -51,9 +80,13 @@ class Map:
         )
         return self.fig
 
-    def add_points(self, df_state, name):
+    def add_points(self, df_state: pd.DataFrame, name: str) -> None:
         """
         Adds incident points to the map for the selected state.
+
+        Args:
+            df_state (pd.DataFrame): DataFrame containing accident data for a specific state.
+            name (str): The name to assign to the trace.
         """
         if df_state is not None and not df_state.empty:
             self.fig.add_trace(
@@ -72,9 +105,13 @@ class Map:
                 ),
             )
 
-    def highlight_state(self, hovered_state, trace_name):
+    def highlight_state(self, hovered_state: str, trace_name: str) -> None:
         """
-        Adds a highlight trace for a hovered state to the figure.
+        Adds a highlight trace for a hovered state to the map.
+
+         Args:
+            hovered_state (str): Name of the state to highlight.
+            trace_name (str): The name to assign to the highlight trace.
         """
         hovered_geometry = None
         for feature in self.us_states['features']:
@@ -113,10 +150,32 @@ class Map:
 
 
 class BarChart:
-    def __init__(self, state_count):
+    """
+    A class to create and manage a horizontal bar chart using Plotly.
+
+    Attributes:
+        state_count (pd.DataFrame): DataFrame containing the count of incidents per state.
+        bar (go.Figure): The Plotly figure object for the bar chart.
+    """
+
+    def __init__(self, state_count: pd.DataFrame) -> None:
+        """
+         Initializes the BarChart with state crash count data.
+
+        Args:
+            state_count (pd.DataFrame): DataFrame containing crash counts per state,
+                with 'state_name' and 'crash_count' columns.
+        """
+        self.bar = None
         self.state_count = state_count
 
-    def create_barchart(self):
+    def create_barchart(self) -> go.Figure:
+        """
+        Generates a horizontal bar chart showing the crash counts for each state.
+
+        Returns:
+            go.Figure: The Plotly figure object representing the bar chart.
+        """
         # Create bar chart
         self.bar = px.bar(self.state_count,
                           x='crash_count',
@@ -151,12 +210,19 @@ class BarChart:
         return self.bar
 
 class LineChart:
-    def __init__(self, state_count) -> None:
+    """
+    A class to create and manage a line chart showing the number of incidents per year using Plotly.
+
+    Attributes:
+        state_count (pd.DataFrame): DataFrame containing incident data with at least 'year' and 'crash_count' columns.
+    """
+
+    def __init__(self, state_count: pd.DataFrame) -> None:
         """
         Initializes the LineChart with the provided DataFrame.
 
-        :param state_count: DataFrame containing incident data with at least 'year' and 'crash_count' columns.
-        :return: None
+        Args:
+            state_count (pd.DataFrame): DataFrame containing incident data with at least 'year' and 'crash_count' columns.
         """
         self.state_count = state_count
 
@@ -164,7 +230,8 @@ class LineChart:
         """
         Creates a line chart showing the number of incidents per year.
 
-        :return: A Plotly Figure object representing the line chart.
+        Returns:
+            go.Figure: A Plotly Figure object representing the line chart.
         """
         # Aggregate crash counts per year
         df_yearly = self.state_count.groupby('year')['crash_count'].sum().reset_index()

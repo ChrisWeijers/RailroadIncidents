@@ -1,9 +1,24 @@
 import pandas as pd
 import numpy as np
 import json
+from typing import Tuple, Dict, Any
 
 
-def get_data():
+def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
+    """
+    Loads, cleans, and prepares the data for the Dash application.
+
+    This function reads data from CSV files, performs data cleaning operations,
+    and aggregates crash counts by state. It also loads the GeoJSON for US states.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
+        A tuple containing:
+            - df (pd.DataFrame): The main DataFrame with accident data, cleaned and preprocessed.
+            - states_center (pd.DataFrame): DataFrame containing the latitude and longitude of the center of each state.
+            - state_count (pd.DataFrame): DataFrame with crash counts per state.
+            - us_states (Dict[str, Any]): A dictionary containing the US states GeoJSON data.
+    """
     # Read data
     df = pd.read_csv('data/Railroad_Equipment_Accident_Incident.csv',
                      delimiter=',',

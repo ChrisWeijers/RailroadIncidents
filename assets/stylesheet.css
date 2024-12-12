@@ -104,6 +104,52 @@ body, html {
     color: #fff;
 }
 
+.clear-button {
+    display: flex;
+    color: #ffffff;
+    background-color: #2b2b2b;
+    padding: 5px 5px;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    transition: all .3s ease;
+    font-weight: bold;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    position: relative;
+}
+
+.clear-button::before,
+.clear-button::after {
+    content: '';
+    position: absolute;
+    width: 12px;  /* Length of each line of the X */
+    height: 2px;  /* Thickness to match arrow */
+    background-color: #ffffff;
+    transition: all .3s ease;
+    top: 50%;  /* Center vertically */
+    left: 50%;  /* Center horizontally */
+}
+
+.clear-button::before {
+    transform: translate(-50%, -50%) rotate(45deg);  /* Adjust transform to maintain center */
+}
+
+.clear-button::after {
+    transform: translate(-50%, -50%) rotate(-45deg);  /* Adjust transform to maintain center */
+}
+
+.clear-button:hover {
+    background-color: #f44336;
+}
+
+.clear-button:hover::before,
+.clear-button:hover::after {
+    width: 14px;  /* Make X slightly larger on hover, similar to arrow animation */
+}
+
 /* Sidebar Styling */
 .popup-sidebar {
     width: 25%;
