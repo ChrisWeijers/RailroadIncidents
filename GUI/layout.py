@@ -37,6 +37,7 @@ def create_layout(config: Dict[str, Any]) -> html.Div:
                     html.Div(
                         id='barchart-button',
                         className='arrow-button',
+                        title='Switch to filters',
                         children=[html.Div(className='arrow-down')],
                         style={'display': 'block'}
                     ),
@@ -64,7 +65,7 @@ def create_layout(config: Dict[str, Any]) -> html.Div:
                                     html.Div(
                                         id='sidebar-button',
                                         className='arrow-button',
-                                        title='Switch',
+                                        title='Switch to barchart',
                                         children=[html.Div(className='arrow')]
                                     ),
                                     html.Button(
