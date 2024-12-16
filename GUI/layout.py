@@ -159,6 +159,7 @@ def create_layout(config: Dict[str, Any]) -> html.Div:
             html.Div(
                 className='content-area',
                 children=[
+                    dcc.Store(id='hovered-state', storage_type='memory'),
                     dcc.Store(id='selected-state', storage_type='memory'),
                     dcc.Store(
                         id='manual-zoom',

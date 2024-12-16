@@ -5,6 +5,7 @@ from dash import html
 import pandas as pd
 from typing import List, Dict, Any
 
+
 def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any]) -> None:
     """
     Sets up all the callback functions for the Dash application.
@@ -18,10 +19,12 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         state_count (pd.DataFrame): DataFrame with crash counts per state.
         us_states (Dict[str, Any]): A dictionary of US states data.
     """
+
     @app.callback(
         [
             Output('manual-zoom', 'data'),
             Output('selected-state', 'data'),
+            Output('hovered-state', 'data'),
             Output('popup-title', 'children'),
             Output('popup-details', 'children'),
             Output('barchart', 'style'),
@@ -33,18 +36,22 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             Input('crash-map', 'relayoutData'),
             Input('crash-map', 'clickData'),
             Input('barchart', 'clickData'),
+            Input('crash-map', 'hoverData'),
+            Input('barchart', 'hoverData'),
             Input('sidebar-button', 'n_clicks'),
             Input('barchart-button', 'n_clicks'),
             Input('clear-selection-button', 'n_clicks')
         ],
         [
             State('manual-zoom', 'data'),
-            State('selected-state', 'data')
+            State('selected-state', 'data'),
+            State('hovered-state', 'data')
         ]
     )
     def handle_interactions(relayout_data: Dict[str, Any], map_click: Dict[str, Any], bar_click: Dict[str, Any],
-                           button_clicks: int, bar_button_clicks: int, clear_button_clicks: int,
-                           current_zoom_state: Dict[str, Any], current_selected: str) -> tuple:
+                            map_hover: Dict[str, Any], bar_hover: Dict[str, Any],
+                            button_clicks: int, bar_button_clicks: int, clear_button_clicks: int,
+                            current_zoom_state: Dict[str, Any], current_selected: str, current_hovered: str) -> tuple:
         """
         Handles interactions with the map, bar chart, and buttons.
 
@@ -54,11 +61,14 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             relayout_data (dict): Data from map relayout event.
             map_click (dict): Data from map click event.
             bar_click (dict): Data from bar chart click event.
+            map_hover (dict): Data from map hover event.
+            bar_hover (dict): Data from bar chart hover event.
             button_clicks (int): Number of clicks on the sidebar button.
             bar_button_clicks (int): Number of clicks on the bar chart button.
             clear_button_clicks (int): Number of clicks on the clear button.
             current_zoom_state (dict): Current zoom and center of the map.
             current_selected (str): The currently selected state.
+            current_hovered (str): The currently hovered state.
 
         Returns:
             tuple: A tuple containing updated zoom data, selected state, popup title, popup details,
@@ -78,6 +88,18 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
         if clicked_state:
             current_selected = clicked_state
+
+        hovered_state = None
+        if trigger_id == 'crash-map' and map_hover:
+            point_data = map_hover['points'][0]
+            hovered_state = point_data.get('customdata') or (
+                point_data.get('text', '').split('<br>')[0] if point_data.get('text') else None
+            )
+        elif trigger_id == 'barchart' and bar_hover:
+            hovered_state = bar_hover['points'][0].get('label') or bar_hover['points'][0].get('x')
+
+        if hovered_state:
+            current_hovered = hovered_state
 
         if trigger_id == 'crash-map' and relayout_data:
             new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state['zoom'])
@@ -117,20 +139,19 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         # Hide clear button if no state is selected
         clear_button_style = {'display': 'block' if current_selected else 'none'}
 
-        if trigger_id == 'clear-selection-button':
-            return (current_zoom_state, None, '', '', {'display': 'block'},
+        if trigger_id == 'clear-selection-button' and clear_button_clicks:
+            return (current_zoom_state, None, current_hovered, '', '', {'display': 'block'},
                     {'display': 'none'}, {'display': 'block'}, {'display': 'none'})
 
-        return (current_zoom_state, current_selected, popup_title, popup_details, barchart_style,
+        return (current_zoom_state, current_selected, current_hovered, popup_title, popup_details, barchart_style,
                 sidebar_style, bar_button_style, clear_button_style)
 
     @app.callback(
         [Output('crash-map', 'figure'),
-        Output('barchart', 'figure')],
+         Output('barchart', 'figure')],
         [
-            Input('crash-map', 'hoverData'),
-            Input('barchart', 'hoverData'),
             Input('selected-state', 'data'),
+            Input('hovered-state', 'data'),
             Input('crash-map', 'relayoutData'),
             Input('manual-zoom', 'data'),
             Input('year-slider', 'value'),
@@ -140,7 +161,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             Input('speed-slider', 'value')
         ]
     )
-    def update_map(hover_map: Dict[str, Any], hover_bar: Dict[str, Any], selected_state: str,
+    def update_map(selected_state: str, hovered_state: str,
                    relayout: Dict[str, Any], manual_zoom: Dict[str, Any],
                    year_range: List[int], month_range: List[int], damage_range: List[float],
                    injuries_range: List[int], speed_range: List[float]) -> tuple:
@@ -150,8 +171,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         Filters data based on selected state, year, month, damage, injuries, and speed ranges.
 
         Args:
-            hover_map (dict): Data from map hover event.
-            hover_bar (dict): Data from bar chart hover event.
+            hovered_state (str): The currently hovered state.
             selected_state (str): The currently selected state.
             relayout (dict): Data from map relayout event.
             manual_zoom (dict): Current zoom and center of the map.
@@ -168,14 +188,6 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         us = Map(df, us_states, state_count, manual_zoom)
         fig = us.plot_map()
 
-        hovered_state = None
-        if hover_map:
-            hovered_point = hover_map['points'][0]
-            hovered_state = hovered_point.get('customdata') or hovered_point.get('text', '').split('<br>')[0]
-        elif hover_bar:
-            hovered_point = hover_bar['points'][0]
-            hovered_state = hovered_point.get('label') or hovered_point.get('name')
-
         if hovered_state:
             us.highlight_state(hovered_state, 'hoverstate')
 
@@ -187,7 +199,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
                 (df['ACCDMG'] >= damage_range[0]) & (df['ACCDMG'] <= damage_range[1]) &
                 (df['TOTINJ'] >= injuries_range[0]) & (df['TOTINJ'] <= injuries_range[1]) &
                 (df['TRNSPD'] >= speed_range[0]) & (df['TRNSPD'] <= speed_range[1])
-            ]
+                ]
 
             us.highlight_state(selected_state, 'clickstate')
             us.add_points(df_filtered, 'clickstate')
@@ -200,7 +212,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
                     (df['ACCDMG'] >= damage_range[0]) & (df['ACCDMG'] <= damage_range[1]) &
                     (df['TOTINJ'] >= injuries_range[0]) & (df['TOTINJ'] <= injuries_range[1]) &
                     (df['TRNSPD'] >= speed_range[0]) & (df['TRNSPD'] <= speed_range[1])
-                ]
+                    ]
                 us.add_points(df_all_filtered, 'all_points')
 
         return fig, bar
