@@ -11,6 +11,9 @@
 - Added a `deselect` button when a state is selected
   - When hovering over this button, it turns into red to indicate it clearly
   - **Although the selection seems to return when zooming in or dragging the map around!!!**
+- Added hover information to the arrow button.
+  - When the arrow is pointing down it will say 'Switch to filters'
+  - When the arrow is pointing up it will say 'Switch to barchart'
 
 ## 11 December 2024
 ### Added (Chris)
