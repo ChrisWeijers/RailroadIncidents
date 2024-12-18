@@ -28,132 +28,17 @@ def create_layout(config: Dict[str, Any]) -> html.Div:
         html.Div: The main layout as a Dash HTML Div component.
     """
     return html.Div(
-        className='main-container',
         children=[
             html.Div(
                 id="popup-sidebar",
                 className="popup-sidebar",
                 children=[
-                    html.Div(
-                        id='barchart-button',
-                        className='arrow-button',
-                        title='Switch to filters',
-                        children=[html.Div(className='arrow-down')],
-                        style={'display': 'block'}
-                    ),
                     dcc.Graph(
                         id='barchart',
                         className='barchart',
                         config={'displayModeBar': False},
                         style={'display': 'block'},
                     ),
-
-                    html.Div(
-                        id="state-popup",
-                        className="popup-content",
-                        style={'display': 'none'},
-                        children=[
-                            html.Div(
-                                className='button-container',
-                                style={
-                                    'display': 'flex',
-                                    'alignItems': 'center',
-                                    'gap': '10px',
-                                    'marginBottom': '10px'
-                                },
-                                children=[
-                                    html.Div(
-                                        id='sidebar-button',
-                                        className='arrow-button',
-                                        title='Switch to barchart',
-                                        children=[html.Div(className='arrow')]
-                                    ),
-                                    html.Button(
-                                        id='clear-selection-button',
-                                        className='clear-button',
-                                        title='Clear Selection',
-                                        style={'display': 'none'}
-                                    ),
-                                ]
-                            ),
-
-                            html.H3(id="popup-title"),
-                            html.Div(id="popup-details"),
-
-                            # Year Range Slider
-                            html.Label("Select Year Range"),
-                            dcc.RangeSlider(
-                                id='year-slider',
-                                min=config['year_min'],
-                                max=config['year_max'],
-                                value=[config['year_min'], config['year_max']],
-                                marks={str(y): str(y) for y in range(config['year_min'], config['year_max'] + 1, 4)},
-                                step=1
-                            ),
-
-                            # Month Slider
-                            html.Label("Select Month"),
-                            dcc.RangeSlider(
-                                id='month-slider',
-                                min=config['month_min'],
-                                max=config['month_max'],
-                                value=[config['month_min'], config['month_max']],
-                                marks={str(m): str(m) for m in range(config['month_min'], config['month_max'] + 1)},
-                                step=1
-                            ),
-
-                            # Damage Slider
-                            html.Label("Select Damage Range"),
-                            dcc.RangeSlider(
-                                id='damage-slider',
-                                min=config['damage_min'],
-                                max=config['damage_max'],
-                                value=[config['damage_min'], config['damage_max']],
-                                marks={
-                                    str(int(d)): str(int(d)) for d in [
-                                        config['damage_min'],
-                                        (config['damage_min'] + config['damage_max']) // 2,
-                                        config['damage_max']
-                                    ]
-                                },
-                                step=(config['damage_max'] - config['damage_min']) / 100.0 if config['damage_max'] > config['damage_min'] else 1
-                            ),
-
-                            # Injuries Slider
-                            html.Label("Select Injuries Range"),
-                            dcc.RangeSlider(
-                                id='injuries-slider',
-                                min=config['injuries_min'],
-                                max=config['injuries_max'],
-                                value=[config['injuries_min'], config['injuries_max']],
-                                marks={
-                                    str(int(i)): str(int(i)) for i in [
-                                        config['injuries_min'],
-                                        (config['injuries_min'] + config['injuries_max']) // 2,
-                                        config['injuries_max']
-                                    ]
-                                },
-                                step=1
-                            ),
-
-                            # Speed Slider
-                            html.Label("Select Speed Range"),
-                            dcc.RangeSlider(
-                                id='speed-slider',
-                                min=config['speed_min'],
-                                max=config['speed_max'],
-                                value=[config['speed_min'], config['speed_max']],
-                                marks={
-                                    str(int(s)): str(int(s)) for s in [
-                                        config['speed_min'],
-                                        (config['speed_min'] + config['speed_max']) // 2,
-                                        config['speed_max']
-                                    ]
-                                },
-                                step=1
-                            ),
-                        ],
-                    )
                 ]
             ),
 

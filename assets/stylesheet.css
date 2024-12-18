@@ -13,147 +13,10 @@ body, html {
     overflow: hidden;
 }
 
-
-.arrow-button {
-    display: flex;
-    color: #ffffff;
-    background-color: #2b2b2b;
-    padding: 5px 5px;
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    transition: all .3s ease;
-    font-weight: bold;
-    cursor: pointer;
-    align-items: center;
-    font-size: 14px;
-}
-
-.arrow-button > .arrow-down {
-    width: 6px;
-    height: 6px;
-    border-right: 2px solid #ffffff;
-    border-bottom: 2px solid #ffffff;
-    position: relative;
-    transform: rotate(45deg);
-    margin: 3px 5.5px;
-    transition: all .3s ease;
-}
-
-.arrow-button > .arrow {
-    width: 6px;
-    height: 6px;
-    border-right: 2px solid #ffffff;
-    border-bottom: 2px solid #ffffff;
-    position: relative;
-    transform: rotate(-135deg);
-    margin: 0 5.5px;
-    transition: all .3s ease;
-}
-
-.arrow-button > .arrow-down::before {
-    display: block;
-    background-color: currentColor;
-    width: 2px;
-    transform-origin: bottom right;
-    height: 2px;
-    position: absolute;
-    opacity: 0;
-    bottom: calc(-2px / 2);
-    transform: rotate(45deg);
-    transition: all .3s ease;
-    content: "";
-    right: 0;
-}
-
-.arrow-button > .arrow::before {
-    display: block;
-    background-color: currentColor;
-    width: 2px;
-    transform-origin: bottom right;
-    height: 2px;
-    position: absolute;
-    opacity: 0;
-    bottom: calc(-2px / 2);
-    transform: rotate(45deg);
-    transition: all .3s ease;
-    content: "";
-    right: 0;
-}
-
-.arrow-button:hover > .arrow {
-    transform: rotate(-135deg) translate(1px, 1px);
-}
-
-.arrow-button:hover > .arrow-down {
-    transform: rotate(45deg) translate(2px, 2px);
-}
-
-.arrow-button:hover > .arrow-down::before {
-    opacity: 1;
-    width: 8px;
-}
-
-.arrow-button:hover > .arrow::before {
-    opacity: 1;
-    width: 8px;
-}
-
-.arrow-button:hover {
-    background-color: #444444;
-    color: #fff;
-}
-
-.clear-button {
-    display: flex;
-    color: #ffffff;
-    background-color: #2b2b2b;
-    padding: 5px 5px;
-    width: 30px;
-    height: 30px;
-    border-radius: 10px;
-    transition: all .3s ease;
-    font-weight: bold;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    position: relative;
-}
-
-.clear-button::before,
-.clear-button::after {
-    content: '';
-    position: absolute;
-    width: 12px;  /* Length of each line of the X */
-    height: 2px;  /* Thickness to match arrow */
-    background-color: #ffffff;
-    transition: all .3s ease;
-    top: 50%;  /* Center vertically */
-    left: 50%;  /* Center horizontally */
-}
-
-.clear-button::before {
-    transform: translate(-50%, -50%) rotate(45deg);  /* Adjust transform to maintain center */
-}
-
-.clear-button::after {
-    transform: translate(-50%, -50%) rotate(-45deg);  /* Adjust transform to maintain center */
-}
-
-.clear-button:hover {
-    background-color: #f44336;
-}
-
-.clear-button:hover::before,
-.clear-button:hover::after {
-    width: 14px;  /* Make X slightly larger on hover, similar to arrow animation */
-}
-
 /* Sidebar Styling */
 .popup-sidebar {
-    width: 25%;
-    height: 100%;
+    width: 40%;
+    height: 50%;
     background: #1e1e1e; /* Dark background for sidebar */
     padding: 20px;
     box-sizing: border-box;
@@ -166,104 +29,10 @@ body, html {
     box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.5); /* Add a shadow for depth */
 }
 
-/* Sidebar Content */
-.popup-content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px; /* Spacing between elements */
-    overflow-y: scroll; /* Enable scrolling if content overflows */
-    max-height: 100%;
-}
-
-.popup-content::-webkit-scrollbar {
-    display: none; /* Hide the scrollbar */
-}
-/* Title Styling */
-#state-popup h3 {
-    margin-top: 0;
-    font-size: 1.6em;
-    font-weight: 600;
-    color: #ffffff;
-    text-align: center;
-    border-bottom: 2px solid #444444; /* Underline for title */
-    padding-bottom: 10px;
-}
-
-/* Details Styling */
-#popup-details p {
-    margin: 5px 0;
-    font-size: 1.1em;
-    line-height: 1.4em;
-    color: #e0e0e0;
-}
-
-/* Labels for sliders */
-.popup-content label {
-    font-size: 1.1em;
-    font-weight: 500;
-    margin-bottom: 5px;
-    color: #bfbfbf;
-}
-
-/* Slider Styling */
-/* Dash sliders are based on rc-slider classes */
-
-/* The rail (background) of the slider */
-.rc-slider-rail {
-    background-color: #555555 !important;
-    height: 6px !important;
-    border-radius: 3px;
-}
-
-/* The track (selected range) of the slider */
-.rc-slider-track {
-    background-color: #00bfff !important; /* Bright contrast color */
-    height: 6px !important;
-    border-radius: 3px;
-}
-
-/* The handle (draggable circle) */
-.rc-slider-handle {
-    border: 2px solid #00bfff !important;
-    height: 18px !important;
-    width: 18px !important;
-    margin-top: -7px !important;
-    background-color: #1e1e1e !important;
-    cursor: pointer;
-    box-shadow: 0px 0px 6px rgba(0, 191, 255, 0.8); /* Soft glowing outline */
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* When handle is hovered or active */
-.rc-slider-handle:hover,
-.rc-slider-handle:active,
-.rc-slider-handle:focus {
-    border-color: #ffffff !important;
-    box-shadow: 0px 0px 8px rgba(255, 255, 255, 0.8); /* Slightly brighter glow */
-}
-
-/* Hide the slider dots (white dots) */
-.rc-slider-dot {
-    display: none !important;
-}
-
-/* Slider marks (the numbers beneath the slider) */
-.rc-slider-mark-text {
-    font-size: 0.9em;
-    color: #cccccc !important;
-    white-space: nowrap;
-}
-
-/* Current selected marks (if highlighted) */
-.rc-slider-mark-text-active {
-    color: #ffffff !important;
-}
-
-
 /* Content Area */
 .content-area {
     flex: 1;
-    margin-left: 25%;
+    margin-left: 40%;
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
@@ -278,21 +47,11 @@ body, html {
     overflow: hidden;
     background-color: #1e1e1e; /* Match sidebar background */
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5); /* Add depth */
-    height: 95%;
+    height: 50%;
 }
 
 .barchart {
     height: 95%;
-}
-
-/* Header Styling */
-.content-area h1 {
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 1.8em;
-    color: #ffffff;
-    border-bottom: 2px solid #444444; /* Underline for emphasis */
-    padding-bottom: 10px;
 }
 
 /* Responsive Adjustments */
@@ -310,16 +69,4 @@ body, html {
         padding: 10px;
     }
 
-    #state-popup h3 {
-        font-size: 1.4em;
-    }
-
-    .popup-content label,
-    #popup-details p {
-        font-size: 1em;
-    }
-
-    .content-area h1 {
-        font-size: 1.5em;
-    }
 }
