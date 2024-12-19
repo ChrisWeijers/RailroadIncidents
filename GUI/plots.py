@@ -190,8 +190,9 @@ class BarChart:
 
         self.bar.update_traces(
             textfont=dict(color="white"),
-            textposition= 'outside',
-            hovertemplate="<b>%{x}</b><br>Crashes: %{x:,}<extra></extra>",
+            textposition='outside',
+            hoverinfo='text',
+            hovertemplate="<b>%{text}</b><br>Crashes: %{x:,}<extra></extra>",
             hoverlabel=dict(
                 bgcolor="lightgrey",
                 bordercolor="grey",
@@ -202,12 +203,11 @@ class BarChart:
         self.bar.update_layout(
             plot_bgcolor='rgba(0, 0, 0, 0)',
             paper_bgcolor='rgba(0, 0, 0, 0)',
-            font_color='red',
-            title_font_color='red',
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
         )
 
         return self.bar
+
 
 class LineChart:
     """

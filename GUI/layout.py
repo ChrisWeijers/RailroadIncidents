@@ -1,7 +1,8 @@
 from dash import html, dcc
 from typing import Dict, Any
 
-def create_layout(config: Dict[str, Any]) -> html.Div:
+
+def create_layout(config: list) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
@@ -28,34 +29,23 @@ def create_layout(config: Dict[str, Any]) -> html.Div:
         html.Div: The main layout as a Dash HTML Div component.
     """
     return html.Div(
+        className='container',
         children=[
             html.Div(
-                id="popup-sidebar",
-                className="popup-sidebar",
+                className='top',
                 children=[
                     dcc.Graph(
                         id='barchart',
-                        className='barchart',
-                        config={'displayModeBar': False},
+                        className='left',
+                        config={
+                            'displayModeBar': False,
+                            'scrollZoom': True
+                        },
                         style={'display': 'block'},
                     ),
-                ]
-            ),
-
-            html.Div(
-                className='content-area',
-                children=[
-                    dcc.Store(id='hovered-state', storage_type='memory'),
-                    dcc.Store(id='selected-state', storage_type='memory'),
-                    dcc.Store(
-                        id='manual-zoom',
-                        storage_type='memory',
-                        data={'zoom': 3, 'center': {'lat': 40.003, 'lon': -102.0517}}
-                    ),
-
                     dcc.Graph(
                         id='crash-map',
-                        className='graph-container',
+                        className='right',
                         config={
                             'scrollZoom': True,
                             'doubleClick': 'reset',
@@ -63,6 +53,52 @@ def create_layout(config: Dict[str, Any]) -> html.Div:
                         }
                     ),
                 ]
-            )
+            ),
+            html.Div(
+                className='bottom',
+                children=[
+                    html.Div(
+                        className='dropdown-container',
+                        children=[
+                            dcc.Dropdown(
+                                className='dropdown',
+                                options=['Dates'],
+                                multi=True,
+                                placeholder='Date(s)'
+                            ),
+                            dcc.Dropdown(
+                                className='dropdown',
+                                options=config,
+                                multi=True,
+                                placeholder='Select state(s)'
+                            ),
+                            dcc.Dropdown(
+                                className='dropdown',
+                                options=['Attributes'],
+                                multi=True,
+                                placeholder='Attribute'
+                            ),
+                            dcc.Dropdown(
+                                className='dropdown',
+                                options=['Barchart', 'Linechart', 'Piechart', 'etc..'],
+                                placeholder='Visualization'
+                            )
+                        ]
+                    ),
+                    html.Div(
+                        children=[
+                            html.Div('plot here'),
+                            html.Div('plot here')
+                        ],
+                        className='content')
+                ]
+            ),
+            dcc.Store(id='hovered-state', storage_type='memory'),
+            dcc.Store(id='selected-state', storage_type='memory'),
+            dcc.Store(
+                id='manual-zoom',
+                storage_type='memory',
+                data={'zoom': 3, 'center': {'lat': 40.003, 'lon': -102.0517}}
+            ),
         ]
     )

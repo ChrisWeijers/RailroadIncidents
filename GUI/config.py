@@ -18,15 +18,7 @@ injuries_max = 400
 speed_min = df['TRNSPD'].min()
 speed_max = df['TRNSPD'].max()
 
-config = {
-    'year_min': year_min,
-    'year_max': year_max,
-    'month_min': month_min,
-    'month_max': month_max,
-    'damage_min': damage_min,
-    'damage_max': damage_max,
-    'injuries_min': injuries_min,
-    'injuries_max': injuries_max,
-    'speed_min': speed_min,
-    'speed_max': speed_max,
-}
+config = [
+    state for state in state_count['state_name']
+]
+

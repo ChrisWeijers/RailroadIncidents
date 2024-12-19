@@ -4,69 +4,60 @@ body, html {
     height: 100%;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background-color: #2b2b2b;
-    color: #ffffff;
 }
 
-.main-container {
+.container {
+    display: grid;
+    grid-template-rows: 50% 50%; /* Split the container vertically */
+    height: 100vh; /* Full viewport height */
+  }
+
+  /* Define the top part with two horizontal sections */
+  .top {
+    display: grid;
+    grid-template-columns: 40% 60%; /* Split the top part horizontally */
+  }
+
+  /* Styling for individual sections */
+  .left, .right, .bottom {
+    display: flex; /* Center content inside */
+    align-items: center;
+    justify-content: center;
+  }
+
+  .left {
+      cursor: pointer;
+      margin: 3%;
+  }
+
+  .right {
+      cursor: auto;
+  }
+
+  .bottom {
+      background-color: black;
+      display: flex;
+      flex-direction: column;
+  }
+
+.dropdown-container {
     display: flex;
-    height: 100vh;
-    overflow: hidden;
+    justify-content: space-around; /* Space dropdowns evenly */
+    align-items: center;
+    width: 100%;
 }
 
-/* Sidebar Styling */
-.popup-sidebar {
-    width: 40%;
-    height: 50%;
-    background: #1e1e1e; /* Dark background for sidebar */
-    padding: 20px;
-    box-sizing: border-box;
-    position: fixed;
-    z-index: 1000;
+.dropdown-container .Select,
+.dropdown-container .dash-dropdown {
+    width: 100%;
+    padding: 5px 10px;
+    font-size: 16px;
+}
+
+.content {
+    flex: 1; /* Fills the remaining space */
     display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    border-right: 1px solid #333333; /* Subtle border for separation */
-    box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.5); /* Add a shadow for depth */
-}
-
-/* Content Area */
-.content-area {
-    flex: 1;
-    margin-left: 40%;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
-    background: #282828; /* Slightly lighter background */
-    color: #ffffff;
-}
-
-/* Graph Styling */
-.graph-container {
-    margin-top: 20px;
-    border-radius: 10px;
-    overflow: hidden;
-    background-color: #1e1e1e; /* Match sidebar background */
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5); /* Add depth */
-    height: 50%;
-}
-
-.barchart {
-    height: 95%;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .popup-sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        border-right: none;
-        box-shadow: none;
-    }
-
-    .content-area {
-        margin-left: 0;
-        padding: 10px;
-    }
-
+    align-items: center;
+    justify-content: space-around;
+    color: white;
 }
