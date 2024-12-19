@@ -67,6 +67,7 @@ def create_layout(config: list) -> html.Div:
                                 placeholder='Date(s)'
                             ),
                             dcc.Dropdown(
+                                id='states-select',
                                 className='dropdown',
                                 options=config,
                                 multi=True,

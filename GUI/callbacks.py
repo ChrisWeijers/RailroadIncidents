@@ -1,3 +1,4 @@
+import dash
 from dash import Output, Input, State, callback
 from dash import callback_context
 from GUI.plots import Map, BarChart
@@ -49,28 +50,28 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
     @app.callback(
         [
-            Output('selected-state', 'data'),
+            Output('states-select', 'value')
         ],
         [
             Input('crash-map', 'clickData'),
             Input('barchart', 'clickData'),
         ],
         [
-            State('selected-state', 'data')
+            State('selected-state', 'data'),
         ]
     )
     def handle_selection(map_click, bar_click, current_selected):
         ctx = callback_context
         trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
-        selected_state = str()
+        selected_state = []
         if trigger_id == 'crash-map' and map_click:
             point_data = map_click['points'][0]
-            selected_state = point_data.get('customdata') or point_data.get('text', '').split('<br>')[0]
+            selected_state = [point_data.get('customdata') or point_data.get('text', '').split('<br>')[0]]
         elif trigger_id == 'barchart' and bar_click:
-            selected_state = bar_click['points'][0].get('label') or bar_click['points'][0].get('x')
+            selected_state = [bar_click['points'][0].get('label') or bar_click['points'][0].get('x')]
 
-        return [selected_state]
+        return selected_state
 
     @app.callback(
         Output('hovered-state', 'data'),
@@ -96,7 +97,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         [Output('crash-map', 'figure'),
          Output('barchart', 'figure')],
         [
-            Input('selected-state', 'data'),
+            Input('states-select', 'value'),
             Input('hovered-state', 'data'),
             Input('manual-zoom', 'data'),
         ]
@@ -110,11 +111,18 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             us.highlight_state(hovered_state, 'hoverstate')
 
         if selected_state:
-            df_filtered = df[
-                (df['state_name'] == selected_state)
-                ]
             us.highlight_state(selected_state, 'clickstate')
+
+            if type(selected_state) is not list:
+                selected_state = [selected_state]
+            df_filtered = df[
+                (df['state_name'].isin(selected_state))
+            ]
             us.add_points(df_filtered, 'clickstate')
+            if len(selected_state) > 1:
+                state_count_filtered = state_count[
+                    state_count['state_name'].isin(selected_state)
+                ]
+                bar = BarChart(state_count_filtered).create_barchart()
 
         return fig, bar
-
