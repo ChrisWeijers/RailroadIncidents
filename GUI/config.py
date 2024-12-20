@@ -3,7 +3,7 @@ from GUI.data import get_data
 df, states_center, state_count, us_states = get_data()
 
 
-year_min = 2000
+year_min = int(df['corrected_year'].min())
 year_max = int(df['corrected_year'].max())
 
 month_min = int(df['IMO'].min())

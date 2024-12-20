@@ -1,5 +1,6 @@
 from dash import html, dcc
 from typing import Dict, Any
+import GUI.config
 
 
 def create_layout(config: list) -> html.Div:
@@ -60,18 +61,15 @@ def create_layout(config: list) -> html.Div:
                     html.Div(
                         className='dropdown-container',
                         children=[
-                            dcc.Dropdown(
-                                className='dropdown',
-                                options=['Dates'],
-                                multi=True,
-                                placeholder='Date(s)'
-                            ),
+                            dcc.DatePickerRange(className='datepicker',
+                                start_date=str(GUI.config.year_min), end_date=str(GUI.config.year_max)),
                             dcc.Dropdown(
                                 id='states-select',
                                 className='dropdown',
                                 options=config,
                                 multi=True,
-                                placeholder='Select state(s)'
+                                placeholder='Select state(s)',
+                                value=[]
                             ),
                             dcc.Dropdown(
                                 className='dropdown',
