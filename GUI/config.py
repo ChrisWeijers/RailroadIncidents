@@ -1,6 +1,6 @@
 from GUI.data import get_data
 
-df, states_center, state_count, us_states = get_data()
+df, states_center, state_count, us_states, states_alphabetical = get_data()
 
 
 year_min = int(df['corrected_year'].min())
@@ -18,7 +18,5 @@ injuries_max = 400
 speed_min = df['TRNSPD'].min()
 speed_max = df['TRNSPD'].max()
 
-config = [
-    state for state in state_count['state_name']
-]
+config = states_alphabetical
 

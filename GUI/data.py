@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 import json
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List
 
 
-def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
+def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any], List]:
     """
     Loads, cleans, and prepares the data for the Dash application.
 
@@ -60,4 +60,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     diff.insert(1, 'crash_count', [0, 0, 0])
     state_count = state_count._append(diff)
 
-    return df, states_center, state_count, us_states
+    # Create alphabetically sorted state list for dropdown
+    states_alphabetical = sorted(state_count['state_name'].unique())
+
+    return df, states_center, state_count, us_states, states_alphabetical

@@ -5,7 +5,7 @@ from GUI.config import config, year_max, year_min
 from GUI.data import get_data
 
 # Initialize data
-df, states_center, state_count, us_states = get_data()
+df, states_center, state_count, us_states, states_alphabetical = get_data()
 
 
 app = Dash(__name__)
