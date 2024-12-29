@@ -20,7 +20,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
             - us_states (Dict[str, Any]): A dictionary containing the US states GeoJSON data.
     """
     # Read data
-    df = pd.read_csv('data/Railroad_Equipment_Accident_Incident.csv',
+    df = pd.read_csv('data/railroad_incidents_fixed.csv',
                      delimiter=',',
                      low_memory=False
                      )

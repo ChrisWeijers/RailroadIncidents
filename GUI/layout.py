@@ -66,7 +66,7 @@ def create_layout(config: list) -> html.Div:
                             dcc.Dropdown(
                                 id='states-select',
                                 className='dropdown',
-                                options=config,
+                                options=[{'label': 'All States', 'value': 'all'}] + [{'label': state, 'value': state} for state in config],
                                 multi=True,
                                 placeholder='Select state(s)',
                                 value=[]
