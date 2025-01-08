@@ -123,7 +123,10 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
     @app.callback(
         [Output('plot-left', 'figure'),
-         Output('plot-right', 'figure')],
+         Output('plot-right', 'figure'),
+         Output('plot-left', 'style'),
+         Output('plot-right', 'style')
+         ],
         [
             Input('states-select', 'value'),
             Input('attributes-dropdown', 'value'),
@@ -199,8 +202,6 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             else:
                 fig = {}
 
-            if fig:
-                fig.update_layout(transition_duration=500)
             return fig
 
         # 4) If user picked only one chart type, show it on the left
@@ -209,7 +210,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             left_fig = build_figure(selected_viz[0])
             right_fig = {}
         else:
-            left_fig  = build_figure(selected_viz[0])
+            left_fig = build_figure(selected_viz[0])
             right_fig = build_figure(selected_viz[1]) if len(selected_viz) > 1 else {}
 
         return left_fig, right_fig

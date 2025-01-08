@@ -96,8 +96,8 @@ def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
                     html.Div(
                         className='content',
                         children=[
-                            dcc.Graph(id='plot-left',  style={'height': '300px'}),
-                            dcc.Graph(id='plot-right', style={'height': '300px'})
+                            dcc.Graph(id='plot-left',  className='content', style={'display': 'none'}),
+                            dcc.Graph(id='plot-right', className='content', style={'display': 'none'})
                         ]
                     )
                 ]
