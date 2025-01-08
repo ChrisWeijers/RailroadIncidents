@@ -7,7 +7,7 @@ import pandas as pd
 from typing import List, Dict, Any
 
 
-def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any]) -> None:
+def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any], df_map: pd.DataFrame) -> None:
     """
     Sets up all the callback functions for the Dash application.
 
@@ -98,10 +98,8 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         return hovered_state
 
     @app.callback(
-        [
-            Output('crash-map', 'figure'),
-            Output('barchart', 'figure')
-        ],
+        [Output('crash-map', 'figure'),
+         Output('barchart', 'figure')],
         [
             Input('states-select', 'value'),
             Input('hovered-state', 'data'),
@@ -126,16 +124,16 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             else:
                 us.highlight_state(selected_state, 'clickstate')
 
-                if type(selected_state) is not list:
-                    selected_state = [selected_state]
-                df_filtered = df[
-                    (df['state_name'].isin(selected_state))
+            if type(selected_state) is not list:
+                selected_state = [selected_state]
+            df_filtered = df_map[
+                (df_map['state_name'].isin(selected_state))
+            ]
+            us.add_points(df_filtered, 'clickstate')
+            if len(selected_state) > 1:
+                state_count_filtered = state_count[
+                    state_count['state_name'].isin(selected_state)
                 ]
-                us.add_points(df_filtered, 'clickstate')
-                if len(selected_state) > 1:
-                    state_count_filtered = state_count[
-                        state_count['state_name'].isin(selected_state)
-                    ]
-                    bar = BarChart(state_count_filtered).create_barchart()
+                bar = BarChart(state_count_filtered).create_barchart()
 
         return fig, bar

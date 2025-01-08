@@ -4,7 +4,7 @@ import json
 from typing import Tuple, Dict, Any, List
 
 
-def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any], List]:
+def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any], List, pd.DataFrame]:
     """
     Loads, cleans, and prepares the data for the Dash application.
 
@@ -20,7 +20,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
             - us_states (Dict[str, Any]): A dictionary containing the US states GeoJSON data.
     """
     # Read data
-    df = pd.read_csv('data/railroad_incidents_fixed.csv',
+    df = pd.read_csv('data/Railroad_Equipment_Accident_Incident.csv',
                      delimiter=',',
                      low_memory=False
                      )
@@ -36,8 +36,6 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     )
 
     fips_codes = fips_codes[['fips', 'state_name']].copy()
-    # Clean data
-    df = df.dropna(subset=['Latitude', 'Longitud'])
 
     # Correct the years
     df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
@@ -47,6 +45,8 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     # Ensure consistent state names by stripping whitespace and standardizing case
     df['state_name'] = df['state_name'].str.strip().str.title()
     states_center['Name'] = states_center['Name'].str.strip().str.title()
+
+    df_map = df.dropna(subset=['Latitude', 'Longitud'])
 
     # Load GeoJSON for US states
     with open('data/us-states.geojson', 'r') as geojson_file:
@@ -63,4 +63,4 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     # Create alphabetically sorted state list for dropdown
     states_alphabetical = sorted(state_count['state_name'].unique())
 
-    return df, states_center, state_count, us_states, states_alphabetical
+    return df, states_center, state_count, us_states, states_alphabetical, df_map

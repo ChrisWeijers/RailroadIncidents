@@ -1,9 +1,8 @@
 from dash import html, dcc
 from typing import Dict, Any
-import GUI.config
 
 
-def create_layout(config: list) -> html.Div:
+def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
@@ -61,8 +60,19 @@ def create_layout(config: list) -> html.Div:
                     html.Div(
                         className='dropdown-container',
                         children=[
-                            dcc.DatePickerRange(className='datepicker',
-                                start_date=str(GUI.config.year_min), end_date=str(GUI.config.year_max)),
+                            dcc.RangeSlider(
+                                className='datepicker',
+                                min=int(date_min),
+                                max=int(date_max),
+                                step=1,
+                                marks=None,
+                                tooltip={
+                                    "placement": "bottom",
+                                    "always_visible": True,
+                                    "style": {"fontSize": "10px"}
+                                },
+                                allowCross=False
+                            ),
                             dcc.Dropdown(
                                 id='states-select',
                                 className='dropdown',
@@ -73,14 +83,15 @@ def create_layout(config: list) -> html.Div:
                             ),
                             dcc.Dropdown(
                                 className='dropdown',
-                                options=['Attributes'],
+                                options=attributes,
                                 multi=True,
-                                placeholder='Attribute'
+                                placeholder='Select attribute(s)'
                             ),
                             dcc.Dropdown(
                                 className='dropdown',
-                                options=['Barchart', 'Linechart', 'Piechart', 'etc..'],
-                                placeholder='Visualization'
+                                options=[], # select state and attribute(s)
+                                placeholder='Select visualization(s)',
+                                multi=True
                             )
                         ]
                     ),

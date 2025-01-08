@@ -186,7 +186,7 @@ class BarChart:
                           orientation='h')
 
         self.bar.update_yaxes(visible=False, showticklabels=False)
-        self.bar.update_xaxes(visible=False, showticklabels=False, range=(0, 9210))
+        self.bar.update_xaxes(visible=False, showticklabels=False,)
 
         self.bar.update_traces(
             textfont=dict(color="white"),
