@@ -27,7 +27,7 @@ def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
                         className='left',
                         config={
                             'displayModeBar': False,
-                            'scrollZoom': True
+                            'scrollZoom': False
                         },
                         style={'display': 'block'},
                     ),

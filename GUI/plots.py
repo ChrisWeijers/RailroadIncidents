@@ -90,15 +90,12 @@ class Map:
         """
         if df_state is not None and not df_state.empty:
             self.fig.add_trace(
-                go.Scattermapbox(
+                go.Densitymapbox(
                     lat=df_state['Latitude'],
                     lon=df_state['Longitud'],
-                    mode='markers',
-                    marker=dict(
-                        size=6,
-                        color='darkred',
-                        opacity=0.5
-                    ),
+                    radius=3,
+                    showscale=False,
+                    #colorscale='Blackbody', Possible to change the colorscale if wanted
                     hoverinfo='skip',
                     customdata=df_state['state_name'].tolist(),  # Ensure customdata is set
                     name=name,
@@ -201,6 +198,7 @@ class BarChart:
         )
 
         self.bar.update_layout(
+            uirevision=True,
             plot_bgcolor='rgba(0, 0, 0, 0)',
             paper_bgcolor='rgba(0, 0, 0, 0)',
             margin={"r": 0, "t": 0, "l": 0, "b": 0},

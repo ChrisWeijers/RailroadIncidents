@@ -6,7 +6,9 @@ from dash import html
 import pandas as pd
 from typing import List, Dict, Any
 
-def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any], df_map: pd.DataFrame) -> None:
+
+def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any],
+                    df_map: pd.DataFrame) -> None:
     """
     Sets up all the callback functions for the Dash application.
 
@@ -29,8 +31,10 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         if trigger_id == 'crash-map' and relayout_data:
             new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state.get('zoom', 3))
             new_center = {
-                'lat': relayout_data.get('mapbox.center', {}).get('lat', current_zoom_state.get('center', {}).get('lat', 37.8)),
-                'lon': relayout_data.get('mapbox.center', {}).get('lon', current_zoom_state.get('center', {}).get('lon', -96))
+                'lat': relayout_data.get('mapbox.center', {}).get('lat', current_zoom_state.get('center', {}).get('lat',
+                                                                                                                  37.8)),
+                'lon': relayout_data.get('mapbox.center', {}).get('lon',
+                                                                  current_zoom_state.get('center', {}).get('lon', -96))
             }
             current_zoom_state = {'zoom': new_zoom, 'center': new_center}
 
@@ -130,10 +134,12 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         [
             Input('states-select', 'value'),
             Input('attributes-dropdown', 'value'),
-            Input('viz-dropdown', 'value')
+            Input('viz-dropdown', 'value'),
+            Input('plot-left', 'style'),
+            Input('plot-right', 'style')
         ]
     )
-    def update_bottom_charts(selected_states, selected_attrs, selected_viz):
+    def update_bottom_charts(selected_states, selected_attrs, selected_viz, display_left, display_right):
         """
         Renders up to two charts in the bottom placeholders (plot-left, plot-right),
         based on user selections:
@@ -145,7 +151,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
         # 1) If user hasn't selected any visualization, return empty
         if not selected_viz:
-            return {}, {}
+            return {}, {}, {'display': 'none'}, {'display': 'none'}
 
         # 2) Filter by selected states (if 'all' not in the list)
         if selected_states and ('all' not in selected_states):
@@ -209,8 +215,11 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         if len(selected_viz) == 1:
             left_fig = build_figure(selected_viz[0])
             right_fig = {}
+            display_left = {'display': 'block'}
         else:
             left_fig = build_figure(selected_viz[0])
             right_fig = build_figure(selected_viz[1]) if len(selected_viz) > 1 else {}
+            display_left = {'display': 'block'}
+            display_right = {'display': 'block'}
 
-        return left_fig, right_fig
+        return left_fig, right_fig, display_left, display_right
