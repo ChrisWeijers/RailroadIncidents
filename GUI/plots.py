@@ -3,6 +3,8 @@ import plotly.graph_objects as go
 import pandas as pd
 from typing import Dict, Any, List
 
+LAT_MIN, LAT_MAX = 18.91, 71.39  # U.S. latitude bounds
+LON_MIN, LON_MAX = -179.15, -65.62  # U.S. longitude bounds
 
 class Map:
     """
@@ -89,15 +91,20 @@ class Map:
             name (str): The name to assign to the trace.
         """
         if df_state is not None and not df_state.empty:
+            df_state = df_state[
+                (df_state['Latitude'].between(LAT_MIN, LAT_MAX)) &
+                (df_state['Longitud'].between(LON_MIN, LON_MAX)) &
+                ~((df_state['Latitude'] == 0) & (df_state['Longitud'] == 0))
+                ]
+
             self.fig.add_trace(
                 go.Densitymapbox(
                     lat=df_state['Latitude'],
                     lon=df_state['Longitud'],
                     radius=3,
                     showscale=False,
-                    #colorscale='Blackbody', Possible to change the colorscale if wanted
                     hoverinfo='skip',
-                    customdata=df_state['state_name'].tolist(),  # Ensure customdata is set
+                    customdata=df_state['state_name'].tolist(),
                     name=name,
                 ),
             )
