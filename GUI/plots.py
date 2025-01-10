@@ -209,65 +209,179 @@ class BarChart:
 
 class LineChart:
     """
-    A class to create and manage a line chart showing the number of incidents per year using Plotly.
+    A class to create and manage a line chart showing incidents over time using Plotly.
 
     Attributes:
-        state_count (pd.DataFrame): DataFrame containing incident data with at least 'year' and 'crash_count' columns.
+        df (pd.DataFrame): DataFrame containing incident data.
+        line (go.Figure): The Plotly figure object for the line chart.
     """
 
-    def __init__(self, state_count: pd.DataFrame) -> None:
+    def __init__(self, df: pd.DataFrame) -> None:
         """
-        Initializes the LineChart with the provided DataFrame.
+        Initializes the LineChart with incident data.
 
         Args:
-            state_count (pd.DataFrame): DataFrame containing incident data with at least 'year' and 'crash_count' columns.
+            df (pd.DataFrame): DataFrame containing incident data with date/time information.
         """
-        self.state_count = state_count
+        self.df = df
+        self.line = None
 
-    def create_linechart(self) -> go.Figure:
+    def create_linechart(self, selected_states: List[str] = None) -> go.Figure:
         """
-        Creates a line chart showing the number of incidents per year.
+        Creates a line chart showing incidents over time, with optional state filtering.
+
+        Args:
+            selected_states (List[str], optional): List of states to filter data for.
 
         Returns:
-            go.Figure: A Plotly Figure object representing the line chart.
+            go.Figure: The Plotly figure object representing the line chart.
         """
-        # Aggregate crash counts per year
-        df_yearly = self.state_count.groupby('year')['crash_count'].sum().reset_index()
+        # Filter data if states are selected
+        plot_df = self.df
+        if selected_states and 'all' not in selected_states:
+            plot_df = self.df[self.df['state_name'].isin(selected_states)]
 
-        # Create the line chart
-        fig = px.line(
-            df_yearly,
-            x='year',
-            y='crash_count',
-            title='Incidents per Year',
-            labels={'year': 'Year', 'crash_count': 'Number of Crashes'},
-            markers=True,  # Adds markers to each data point
-            color_discrete_sequence=['#1f77b4']  # You can choose any color you prefer
+        # Aggregate by year and month
+        time_series = (plot_df.groupby(['year', 'month'])
+                       .size()
+                       .reset_index(name='crash_count'))
+
+        # Create datetime for proper x-axis ordering
+        time_series['date'] = pd.to_datetime(
+            time_series['year'].astype(str) + '-' +
+            time_series['month'].astype(str).str.zfill(2) + '-01'
         )
 
-        # Update hover information
-        fig.update_traces(
-            hovertemplate="<b>Year %{x}</b><br>Crashes: %{y:,}<extra></extra>"
+        self.line = go.Figure()
+
+        # Add the line trace
+        self.line.add_trace(
+            go.Scatter(
+                x=time_series['date'],
+                y=time_series['crash_count'],
+                mode='lines+markers',
+                line=dict(color='white', width=2),
+                marker=dict(
+                    size=6,
+                    color='white',
+                    line=dict(color='darkgrey', width=1)
+                ),
+                hovertemplate=(
+                        "<b>%{x|%B %Y}</b><br>" +
+                        "Crashes: %{y:,}<extra></extra>"
+                )
+            )
         )
 
-        # Update layout for consistent styling
-        fig.update_layout(
-            plot_bgcolor='rgba(0, 0, 0, 0)',  # Transparent background
-            paper_bgcolor='rgba(0, 0, 0, 0)',  # Transparent background
-            font=dict(color='grey', size=12),
-            title_font=dict(color='grey'),
+        # Update layout with your dark theme
+        self.line.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            margin=dict(l=40, r=20, t=40, b=20),
+            showlegend=False,
             xaxis=dict(
                 showgrid=True,
-                gridcolor='lightgrey'
+                gridcolor='rgba(128,128,128,0.2)',
+                tickformat='%b %Y',
+                tickangle=-45,
+                tickfont=dict(size=10)
             ),
             yaxis=dict(
                 showgrid=True,
-                gridcolor='lightgrey'
+                gridcolor='rgba(128,128,128,0.2)',
+                tickformat=',d'
             ),
-            hovermode='x unified'  # Makes hover effects consistent
+            hovermode='x unified',
+            transition={'duration': 500, 'easing': 'elastic-in-out'}
         )
 
-        # Optional: Add transition for smooth updates
-        fig.update_layout(transition={'duration': 500, 'easing': 'elastic-in-out'})
+        return self.line
 
-        return fig
+
+class PieChart:
+    """
+    A class to create and manage a pie chart showing incident distributions using Plotly.
+
+    Attributes:
+        df (pd.DataFrame): DataFrame containing incident data.
+        pie (go.Figure): The Plotly figure object for the pie chart.
+    """
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        """
+        Initializes the PieChart with incident data.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing incident data.
+        """
+        self.df = df
+        self.pie = None
+
+    def create_piechart(self,
+                        category: str = 'state_name',
+                        selected_states: List[str] = None,
+                        top_n: int = 10) -> go.Figure:
+        """
+        Creates a pie chart showing the distribution of incidents by the specified category.
+
+        Args:
+            category (str): Column name to group data by (default: 'state_name')
+            selected_states (List[str], optional): List of states to filter data for
+            top_n (int): Number of top categories to show (default: 10)
+
+        Returns:
+            go.Figure: The Plotly figure object representing the pie chart.
+        """
+        # Filter data if states are selected
+        plot_df = self.df
+        if selected_states and 'all' not in selected_states:
+            plot_df = self.df[self.df['state_name'].isin(selected_states)]
+
+        # Group by category and get counts
+        category_counts = (plot_df[category]
+                           .value_counts()
+                           .nlargest(top_n)
+                           .reset_index())
+        category_counts.columns = ['category', 'count']
+
+        # Calculate percentages
+        total = category_counts['count'].sum()
+        category_counts['percentage'] = (category_counts['count'] / total * 100)
+
+        self.pie = go.Figure()
+
+        # Add pie trace
+        self.pie.add_trace(
+            go.Pie(
+                labels=category_counts['category'],
+                values=category_counts['count'],
+                hole=0.4,  # Creates a donut chart
+                marker=dict(
+                    colors=['white', 'lightgrey', 'darkgrey', 'grey'] * 3,
+                    line=dict(color='black', width=1)
+                ),
+                textfont=dict(color='black'),
+                hovertemplate=(
+                        "<b>%{label}</b><br>" +
+                        "Count: %{value:,}<br>" +
+                        "Percentage: %{percent:.1%}<extra></extra>"
+                )
+            )
+        )
+
+        # Update layout with your dark theme
+        self.pie.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            margin=dict(l=20, r=20, t=40, b=20),
+            showlegend=True,
+            legend=dict(
+                font=dict(color='white'),
+                bgcolor='rgba(0,0,0,0)'
+            ),
+            transition={'duration': 500, 'easing': 'elastic-in-out'}
+        )
+
+        return self.pie
