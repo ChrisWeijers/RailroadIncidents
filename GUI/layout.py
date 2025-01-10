@@ -1,22 +1,12 @@
 from dash import html, dcc
-from typing import Dict, Any
+from typing import List, Dict
 
 def create_layout(config: list, date_min, date_max, attributes, aliases) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
-    Top:
-      - barchart (left)
-      - crash-map (right)
-
-    Bottom:
-      - RangeSlider
-      - states-select (existing)
-      - attributes-dropdown (NEW ID)
-      - viz-dropdown (NEW ID)
-      - plot-left + plot-right graphs
+    Filters attributes dynamically to ensure compatibility with aliases.
     """
-    # Filter attributes to include only those in aliases
     filtered_attributes = [col for col in attributes if col in aliases]
 
     return html.Div(
@@ -89,7 +79,6 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                                 placeholder="Select an attribute to compare",
                                 value=None
                             ),
-                            # -------- NEW: viz-dropdown with chart types --------
                             dcc.Dropdown(
                                 id='viz-dropdown',
                                 className='dropdown',

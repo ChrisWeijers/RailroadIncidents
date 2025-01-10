@@ -117,42 +117,48 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
          Output('barchart', 'figure')],
         [Input('states-select', 'value'),
          Input('hovered-state', 'data'),
-         Input('manual-zoom', 'data')]
+         Input('manual-zoom', 'data'),
+         Input('range-slider', 'value')],  # Added slider input
     )
-    def update_map(selected_state, hovered_state, manual_zoom):
+    def update_map(selected_state, hovered_state, manual_zoom, selected_range):
         """
-        EXACT logic from your original top chart code:
-          - Builds bar chart
-          - Builds map
-          - Highlights hovered states
-          - Adds points for selected states
+        Updates the map and bar chart with filtered data based on slider range, state selection, and hover.
         """
-        from GUI.plots import Map, BarChart
+        # Filter data based on slider range if the year column exists
+        if 'corrected_year' in df.columns:
+            df_filtered = df[(df['corrected_year'] >= selected_range[0]) &
+                             (df['corrected_year'] <= selected_range[1])]
+        else:
+            df_filtered = df.copy()
 
+        # Create initial figures
         bar = BarChart(state_count).create_barchart()
-        us_map = Map(df, us_states, state_count, manual_zoom)
+        us_map = Map(df_filtered, us_states, state_count, manual_zoom)
         fig_map = us_map.plot_map()
 
+        # Highlight hovered state
         if hovered_state:
             us_map.highlight_state(hovered_state, 'hoverstate')
 
+        # Add points and update bar chart for selected states
         if selected_state:
             if 'all' in selected_state:
-                us_map.add_points(df, 'clickstate')
+                us_map.add_points(df_filtered, 'clickstate')
                 bar = BarChart(state_count).create_barchart()
             else:
                 us_map.highlight_state(selected_state, 'clickstate')
 
-            if not isinstance(selected_state, list):
-                selected_state = [selected_state]
-            df_filtered = df_map[df_map['state_name'].isin(selected_state)]
-            us_map.add_points(df_filtered, 'clickstate')
+                if not isinstance(selected_state, list):
+                    selected_state = [selected_state]
+                state_data = df_filtered[df_filtered['state_name'].isin(selected_state)]
+                us_map.add_points(state_data, 'clickstate')
 
-            if len(selected_state) > 1:
-                state_count_filtered = state_count[state_count['state_name'].isin(selected_state)]
-                bar = BarChart(state_count_filtered).create_barchart()
+                if len(selected_state) > 1:
+                    state_count_filtered = state_count[state_count['state_name'].isin(selected_state)]
+                    bar = BarChart(state_count_filtered).create_barchart()
 
         return fig_map, bar
+
     @app.callback(
         [
             Output('plot-left', 'figure'),
@@ -161,41 +167,47 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             Output('plot-right', 'style'),
             Output('compare-attributes-dropdown', 'options'),
             Output('viz-dropdown', 'options'),
-            Output('viz-dropdown', 'value'),  # Reset visualization dropdown if incompatible
+            Output('viz-dropdown', 'value'),
         ],
         [
-            Input("attributes-dropdown", "value"),
-            Input("compare-attributes-dropdown", "value"),
-            Input("viz-dropdown", "value"),
-        ],
+            Input('attributes-dropdown', 'value'),
+            Input('compare-attributes-dropdown', 'value'),
+            Input('viz-dropdown', 'value'),
+            Input('range-slider', 'value')  # Add range slider as an input
+        ]
     )
-    def update_charts_and_dropdowns(selected_attr, compare_attr, selected_viz):
+    def update_charts_and_dropdowns(selected_attr, compare_attr, selected_viz, selected_range):
         """
-        Updates charts and dropdown options dynamically based on selected attributes and visualizations.
+        Updates charts and dropdown options dynamically based on selected attributes, visualizations, and date range.
         """
-        print("Selected Attribute:", selected_attr)
-        print("Compare Attribute:", compare_attr)
-        print("Selected Visualization:", selected_viz)
-
+        print("Selected Range:", selected_range)
         fig_left, fig_right = {}, {}
         display_left, display_right = {"display": "none"}, {"display": "none"}
 
-        # Check if selected_attr is valid and exists in the ATTRIBUTE_TYPES
-        if not selected_attr or selected_attr not in ATTRIBUTE_TYPES:
-            print("No valid attribute selected.")
+        if not selected_attr:
+            print("No attribute selected.")
+            return fig_left, fig_right, display_left, display_right, [], [], None
+
+        # Filter data based on slider range
+        df_filtered = df[(df['corrected_year'] >= selected_range[0]) & (df['corrected_year'] <= selected_range[1])]
+
+        # Check if selected attributes exist in the DataFrame
+        if selected_attr not in df_filtered.columns or (compare_attr and compare_attr not in df_filtered.columns):
+            print("Selected attributes not found in DataFrame.")
             return fig_left, fig_right, display_left, display_right, [], [], None
 
         # Determine the selected attribute type
         attr_type = ATTRIBUTE_TYPES.get(selected_attr, None)
+        if not attr_type:
+            print("Attribute type not found.")
+            return fig_left, fig_right, display_left, display_right, [], [], None
 
-        # Populate compatible compare options based on original names
+        # Populate compatible compare options and visualization options
         compare_options = [
             {"label": aliases.get(attr, attr), "value": attr}
             for attr, attr_type_2 in ATTRIBUTE_TYPES.items()
             if attr_type_2 in COMPATIBLE_TYPES.get(attr_type, []) and attr != selected_attr
         ]
-
-        # Populate compatible visualization options
         viz_options = [
             {"label": viz.replace("_", " ").capitalize(), "value": viz}
             for viz in COMPATIBLE_VIZ.get(attr_type, [])
@@ -203,58 +215,26 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
         # Reset visualization dropdown if the selected visualization is not compatible
         if selected_viz not in [opt["value"] for opt in viz_options]:
-            print("Selected visualization is not compatible. Resetting visualization dropdown.")
             selected_viz = None
 
-        # Generate figures only if a valid visualization is selected
+        # Generate figures if the selected visualization is compatible
         if selected_viz:
             if selected_viz == "scatter" and compare_attr:
                 fig_left = px.scatter(
-                    df,
+                    df_filtered,
                     x=selected_attr,
                     y=compare_attr,
                     title=f"Scatter: {aliases.get(selected_attr, selected_attr)} vs. {aliases.get(compare_attr, compare_attr)}",
                 )
                 display_left = {"display": "block"}
 
-            elif selected_viz == "scatter_trendline" and compare_attr:
-                fig_left = px.scatter(
-                    df,
-                    x=selected_attr,
-                    y=compare_attr,
-                    trendline="ols",
-                    title=f"Scatter with Trendline: {aliases.get(selected_attr, selected_attr)} vs. {aliases.get(compare_attr, compare_attr)}",
-                )
-                display_left = {"display": "block"}
-
             elif selected_viz == "grouped_bar":
-                grouped = df.groupby(selected_attr, as_index=False).mean()
+                grouped = df_filtered.groupby(selected_attr, as_index=False).mean()
                 fig_left = px.bar(
                     grouped,
                     x=selected_attr,
                     y=compare_attr,
                     title=f"Grouped Bar Chart: Avg {aliases.get(compare_attr, compare_attr)} by {aliases.get(selected_attr, selected_attr)}",
-                )
-                display_left = {"display": "block"}
-
-            elif selected_viz == "boxplot" and compare_attr:
-                fig_left = px.box(
-                    df,
-                    x=selected_attr,
-                    y=compare_attr,
-                    title=f"Boxplot: {aliases.get(compare_attr, compare_attr)} by {aliases.get(selected_attr, selected_attr)}",
-                )
-                display_left = {"display": "block"}
-
-            elif selected_viz == "choropleth":
-                # Example choropleth logic (customize as needed)
-                fig_left = px.choropleth(
-                    df_map,
-                    geojson=us_states,
-                    locations="state_name",
-                    color=selected_attr,
-                    scope="usa",
-                    title=f"Choropleth Map: {aliases.get(selected_attr, selected_attr)}",
                 )
                 display_left = {"display": "block"}
 
