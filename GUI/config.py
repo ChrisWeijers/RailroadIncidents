@@ -1,4 +1,5 @@
 from GUI.data import get_data
+from shapely.geometry import Polygon
 
 df, states_center, state_count, us_states, states_alphabetical, df_map = get_data()
 
@@ -22,3 +23,15 @@ speed_max = df['TRNSPD'].max()
 
 config = states_alphabetical
 
+# A rough polygon for the U.S. (including Alaska and Hawaii)
+US_POLYGON = Polygon([
+    (-179.15, 71.39),  # Top-left (Alaska)
+    (-130, 50),        # Approx west-coast mainland
+    (-125, 30),        # South-west coast
+    (-105, 25),        # Southern mainland
+    (-80, 25),         # Florida
+    (-65, 45),         # North-east coast
+    (-75, 50),         # Near New England
+    (-100, 60),        # Mid-west to Alaska
+    (-179.15, 71.39)   # Close the loop
+])

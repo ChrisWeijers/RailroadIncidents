@@ -2,9 +2,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from typing import Dict, Any, List
-
-LAT_MIN, LAT_MAX = 18.91, 71.39  # U.S. latitude bounds
-LON_MIN, LON_MAX = -179.15, -65.62  # U.S. longitude bounds
+from GUI.config import US_POLYGON
+import geopandas as gpd
 
 class Map:
     """
@@ -83,19 +82,21 @@ class Map:
         return self.fig
 
     def add_points(self, df_state: pd.DataFrame, name: str) -> None:
-        """
-        Adds incident points to the map for the selected state.
-
-        Args:
-            df_state (pd.DataFrame): DataFrame containing accident data for a specific state.
-            name (str): The name to assign to the trace.
-        """
         if df_state is not None and not df_state.empty:
-            df_state = df_state[
-                (df_state['Latitude'].between(LAT_MIN, LAT_MAX)) &
-                (df_state['Longitud'].between(LON_MIN, LON_MAX)) &
-                ~((df_state['Latitude'] == 0) & (df_state['Longitud'] == 0))
-                ]
+            # Drop rows with invalid Latitude or Longitud values
+            df_state = df_state.dropna(subset=['Latitude', 'Longitud'])
+
+            # Convert DataFrame to GeoDataFrame
+            gdf = gpd.GeoDataFrame(
+                df_state,
+                geometry=gpd.points_from_xy(df_state['Longitud'], df_state['Latitude'])
+            )
+
+            # Filter points within the U.S. polygon
+            gdf = gdf[gdf['geometry'].within(US_POLYGON)]
+
+            # Convert back to DataFrame for Plotly
+            df_state = pd.DataFrame(gdf.drop(columns='geometry'))
 
             self.fig.add_trace(
                 go.Densitymapbox(
