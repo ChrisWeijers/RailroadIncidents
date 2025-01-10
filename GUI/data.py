@@ -40,7 +40,10 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     # Correct the years
     df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
 
-    df['DATE'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month'].astype(str) + '-' + df['day'].astype(str))
+    df['DATE'] = pd.to_datetime(df['corrected_year'].astype(str) + '-'
+                                + df['MONTH'].astype(str) + '-'
+                                + df['DAY'].astype(str),
+                                errors='coerce')
 
     df = pd.merge(df, fips_codes, left_on='STATE', right_on='fips').drop('fips', axis=1)
 

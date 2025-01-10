@@ -1,8 +1,7 @@
 from dash import html, dcc
-from alias import aliases
 from typing import Dict, Any
 
-def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
+def create_layout(config: list, date_min, date_max, attributes, aliases) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
@@ -74,7 +73,7 @@ def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
                             dcc.Dropdown(
                                 id='attributes-dropdown',
                                 className='dropdown',
-                                options=[{'label': aliases.get(col, col), 'value': col} for col in attributes],
+                                options=[{'label': label, 'value': value} for value, label in aliases.items()],
                                 multi=True,
                                 placeholder='Select attribute(s)'
                             ),
