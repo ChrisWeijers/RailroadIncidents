@@ -47,7 +47,7 @@ class Map:
                 locations=self.state_count['state_name'],
                 z=self.state_count['crash_count'],
                 featureidkey="properties.name",
-                colorscale=[[0, 'black'], [1, 'white']],
+                colorscale=[[0, 'black'], [1, 'black']],
                 marker_opacity=0.25,
                 marker_line_width=0.5,
                 marker_line_color='lightgrey',

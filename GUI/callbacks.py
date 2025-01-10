@@ -72,14 +72,6 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             if state not in dropdown_selected:
                 dropdown_selected.append(state)
 
-        # If 'all' is in dropdown_selected along with other states, remove 'all'
-        if 'all' in dropdown_selected and len(dropdown_selected) > 1:
-            dropdown_selected.remove('all')
-
-        # If 'all' is selected and there are other states, ensure only 'all' remains
-        if 'all' in dropdown_selected and len(dropdown_selected) > 1:
-            dropdown_selected = ['all']
-
         return dropdown_selected
 
     @app.callback(
@@ -121,26 +113,24 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         if hovered_state:
             us.highlight_state(hovered_state, 'hoverstate')
 
-        if selected_state:
-            # Check if 'all' is in the selection
-            if 'all' in selected_state:
-                # Show all data points
-                us.add_points(df, 'clickstate')
-                # Show full bar chart
-                bar = BarChart(state_count).create_barchart()
-            else:
-                us.highlight_state(selected_state, 'clickstate')
+        if not selected_state:
+            # Show all data points
+            us.add_points(df, 'clickstate')
+            # Show full bar chart
+            bar = BarChart(state_count).create_barchart()
+        else:
+            us.highlight_state(selected_state, 'clickstate')
 
-                if type(selected_state) is not list:
-                    selected_state = [selected_state]
-                df_filtered = df[
-                    (df['state_name'].isin(selected_state))
+            if type(selected_state) is not list:
+                selected_state = [selected_state]
+            df_filtered = df[
+                (df['state_name'].isin(selected_state))
+            ]
+            us.add_points(df_filtered, 'clickstate')
+            if len(selected_state) > 1:
+                state_count_filtered = state_count[
+                    state_count['state_name'].isin(selected_state)
                 ]
-                us.add_points(df_filtered, 'clickstate')
-                if len(selected_state) > 1:
-                    state_count_filtered = state_count[
-                        state_count['state_name'].isin(selected_state)
-                    ]
-                    bar = BarChart(state_count_filtered).create_barchart()
+                bar = BarChart(state_count_filtered).create_barchart()
 
         return fig, bar
