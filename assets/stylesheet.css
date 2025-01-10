@@ -9,65 +9,118 @@ body, html {
 
 .container {
     display: grid;
-    grid-template-rows: 50% 50%; /* Split the container vertically */
+    grid-template-rows: 45% 55%; /* Split the container into top and bottom parts */
     height: 100vh; /* Full viewport height */
-  }
+}
 
-  /* Define the top part with two horizontal sections */
-  .top {
+/* Define the top part with two horizontal sections */
+.top {
     display: grid;
     grid-template-columns: 40% 60%; /* Split the top part horizontally */
-  }
+    gap: 1%; /* Add spacing between plots */
+    padding: 1%; /* Padding around the plots */
+}
 
-  /* Styling for individual sections */
-  .left, .right, .bottom {
-    display: flex; /* Center content inside */
+/* Bottom section for controls and graphs */
+.bottom {
+    display: flex;
+    flex-direction: column;
+    background-color: #1e1e1e;
+    padding: 10px; /* Padding inside the bottom section */
+    gap: 10px;
+}
+
+/* Styling for individual sections */
+.left, .right {
+    display: flex;
     align-items: center;
     justify-content: center;
-  }
+    background-color: #202020;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
 
-  .left {
-      cursor: pointer;
-      margin: 3%;
-  }
+.left {
+    cursor: pointer;
+    padding: 10px;
+}
 
-  .right {
-      cursor: auto;
-  }
+.right {
+    cursor: auto;
+}
 
-  .bottom {
-      background-color: black;
-      display: flex;
-      flex-direction: column;
-  }
+/* Dropdown container for filters and controls */
+.dropdown-container {
+    display: flex;
+    justify-content: space-between; /* Space dropdowns evenly */
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    width: 100%;
+}
 
-    .dropdown-container {
-        display: flex;
-        justify-content: space-around; /* Space dropdowns evenly */
-        align-items: center;
-        width: 100%;
-    }
+.dropdown-container .Select,
+.dropdown-container .dash-dropdown {
+    width: 100%;
+    padding: 5px 10px;
+    font-size: 16px;
+    border-radius: 5px;
+}
 
-    .dropdown-container .Select,
-    .dropdown-container .dash-dropdown {
-        width: 100%;
-        padding: 5px 10px;
-        font-size: 16px;
-    }
+/* Center content and adjust spacing */
+.content {
+    flex: 1; /* Fills the remaining space */
+    display: flex;
+    align-items: stretch; /* Stretch plots to fill the container */
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+}
 
-    .content {
-        flex: 1; /* Fills the remaining space */
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        color: white;
-        width: 95%;
-        height: 100%;
-    }
+/* Ensure plot containers are properly sized and visible */
+#plot-left, #plot-right {
+    width: 100%;
+    height: 100%;
+    background-color: #303030;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
 
 .datepicker {
     margin: 10px;
-    padding: 5px;
-    width: 100%;
-    color: red;
+    padding: 0; /* Reduced padding */
+    width: 100%; /* Ensure it stretches to full width */
+    font-size: 14px;
+    color: white;
+    background-color: transparent; /* Make it blend with the background */
+    border: none; /* Remove borders for cleaner appearance */
+    border-radius: 5px;
+}
+
+/* Adjustments for responsive behavior */
+@media (max-width: 768px) {
+    .container {
+        grid-template-rows: 50% 50%; /* Adjust proportions for smaller screens */
+    }
+
+    .top {
+        grid-template-columns: 100%; /* Stack plots vertically on small screens */
+    }
+
+    .left, .right {
+        width: 100%; /* Take full width */
+        height: 100%;
+    }
+
+    /* Adjust plot dimensions for smaller screens */
+    #plot-left, #plot-right {
+        width: 100%; /* Full width */
+        height: 45%; /* Reduce height for smaller screens */
+    }
+
+    .dropdown-container {
+        flex-direction: column; /* Stack dropdowns vertically */
+        gap: 5px;
+    }
 }

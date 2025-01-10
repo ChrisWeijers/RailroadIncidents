@@ -1,13 +1,39 @@
 import dash
 from dash import Output, Input, State, callback
 from dash import callback_context
-from GUI.plots import Map, BarChart, AttributeCharts
+from GUI.plots import Map, BarChart
 from dash import html
 import pandas as pd
 from typing import List, Dict, Any
 
+# Define compatible visualizations for each attribute type
+COMPATIBLE_VIZ = {
+    "Categorical": ["grouped_bar", "choropleth", "treemap"],
+    "Ordered Quantitative": [
+        "scatter",
+        "scatter_size",
+        "scatter_trendline",
+        "boxplot",
+    ],
+    "Ordered Sequential": [
+        "stacked_bar",
+        "side_by_side_bar",
+        "clustered_bar",
+    ],
+    "Ordered Cyclic": ["polar", "line"],
+}
 
-def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any]) -> None:
+# Define compatible attribute types for comparisons
+COMPATIBLE_TYPES = {
+    "Categorical": ["Categorical", "Ordered Quantitative"],
+    "Ordered Quantitative": ["Ordered Quantitative", "Categorical"],
+    "Ordered Sequential": ["Ordered Sequential", "Ordered Quantitative"],
+    "Ordered Cyclic": ["Ordered Cyclic", "Ordered Quantitative"],
+}
+
+
+def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any],
+                    df_map: pd.DataFrame, aliases: Dict[str, str]) -> None:
     """
     Sets up all the callback functions for the Dash application.
 
@@ -22,27 +48,19 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
     """
 
     @app.callback(
-        [
-            Output('manual-zoom', 'data')
-        ],
-        [
-            Input('crash-map', 'relayoutData')
-        ],
-        [
-            State('manual-zoom', 'data')
-        ]
+        [Output('manual-zoom', 'data')],
+        [Input('crash-map', 'relayoutData')],
+        [State('manual-zoom', 'data')]
     )
     def handle_layout_changes(relayout_data: Dict[str, Any], current_zoom_state: Dict[str, Any]):
         ctx = callback_context
         trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
         if trigger_id == 'crash-map' and relayout_data:
-            new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state.get('zoom', 3))  # Default zoom level 3
+            new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state.get('zoom', 3))
             new_center = {
-                'lat': relayout_data.get('mapbox.center', {}).get('lat', current_zoom_state.get('center', {}).get('lat',
-                                                                                                                  37.8)),
-                'lon': relayout_data.get('mapbox.center', {}).get('lon',
-                                                                  current_zoom_state.get('center', {}).get('lon', -96))
+                'lat': relayout_data.get('mapbox.center', {}).get('lat', current_zoom_state.get('center', {}).get('lat', 37.8)),
+                'lon': relayout_data.get('mapbox.center', {}).get('lon', current_zoom_state.get('center', {}).get('lon', -96))
             }
             current_zoom_state = {'zoom': new_zoom, 'center': new_center}
 
@@ -95,96 +113,149 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         return hovered_state
 
     @app.callback(
-        [
-            Output('crash-map', 'figure'),
-            Output('barchart', 'figure')
-        ],
-        [
-            Input('states-select', 'value'),
-            Input('hovered-state', 'data'),
-            Input('manual-zoom', 'data'),
-        ]
+        [Output('crash-map', 'figure'),
+         Output('barchart', 'figure')],
+        [Input('states-select', 'value'),
+         Input('hovered-state', 'data'),
+         Input('manual-zoom', 'data')]
     )
     def update_map(selected_state, hovered_state, manual_zoom):
+        """
+        EXACT logic from your original top chart code:
+          - Builds bar chart
+          - Builds map
+          - Highlights hovered states
+          - Adds points for selected states
+        """
+        from GUI.plots import Map, BarChart
+
         bar = BarChart(state_count).create_barchart()
-        us = Map(df, us_states, state_count, manual_zoom)
-        fig = us.plot_map()
+        us_map = Map(df, us_states, state_count, manual_zoom)
+        fig_map = us_map.plot_map()
 
         if hovered_state:
-            us.highlight_state(hovered_state, 'hoverstate')
+            us_map.highlight_state(hovered_state, 'hoverstate')
 
-        if not selected_state:
-            # Show all data points
-            us.add_points(df, 'clickstate')
-            # Show full bar chart
-            bar = BarChart(state_count).create_barchart()
-        else:
-            us.highlight_state(selected_state, 'clickstate')
+        if selected_state:
+            if 'all' in selected_state:
+                us_map.add_points(df, 'clickstate')
+                bar = BarChart(state_count).create_barchart()
+            else:
+                us_map.highlight_state(selected_state, 'clickstate')
 
-            if type(selected_state) is not list:
+            if not isinstance(selected_state, list):
                 selected_state = [selected_state]
-            df_filtered = df[
-                (df['state_name'].isin(selected_state))
-            ]
-            us.add_points(df_filtered, 'clickstate')
+            df_filtered = df_map[df_map['state_name'].isin(selected_state)]
+            us_map.add_points(df_filtered, 'clickstate')
+
             if len(selected_state) > 1:
-                state_count_filtered = state_count[
-                    state_count['state_name'].isin(selected_state)
-                ]
+                state_count_filtered = state_count[state_count['state_name'].isin(selected_state)]
                 bar = BarChart(state_count_filtered).create_barchart()
 
-        return fig, bar
-
-    # Initialize AttributeCharts with the dataset
-    attribute_charts = AttributeCharts(df)
-
+        return fig_map, bar
     @app.callback(
-        [Output('plot-left', 'figure'),
-         Output('plot-right', 'figure'),
-         Output('plot-left', 'style'),
-         Output('plot-right', 'style')],
         [
-            Input('states-select', 'value'),
-            Input('attributes-dropdown', 'value'),
-            Input('viz-dropdown', 'value'),
-            Input('plot-left', 'style'),
-            Input('plot-right', 'style')
-        ]
+            Output('plot-left', 'figure'),
+            Output('plot-right', 'figure'),
+            Output('plot-left', 'style'),
+            Output('plot-right', 'style'),
+            Output('compare-attributes-dropdown', 'options'),
+            Output('viz-dropdown', 'options'),
+            Output('viz-dropdown', 'value'),  # Reset visualization dropdown if incompatible
+        ],
+        [
+            Input("attributes-dropdown", "value"),
+            Input("compare-attributes-dropdown", "value"),
+            Input("viz-dropdown", "value"),
+        ],
     )
-    def update_bottom_charts(selected_states, selected_attrs, selected_viz, display_left, display_right):
+    def update_charts_and_dropdowns(selected_attr, compare_attr, selected_viz):
         """
-
-        Args:
-            selected_states:
-            selected_attrs:
-            selected_viz:
-            display_left:
-            display_right:
-
-        Returns:
-
+        Updates charts and dropdown options dynamically based on selected attributes and visualizations.
         """
-        if not selected_viz:
-            return {}, {}, {'display': 'none'}, {'display': 'none'}
+        print("Selected Attribute:", selected_attr)
+        print("Compare Attribute:", compare_attr)
+        print("Selected Visualization:", selected_viz)
 
-        x_attr = selected_attrs[0] if selected_attrs else None
-        y_attr = selected_attrs[1] if len(selected_attrs) > 1 else None
+        fig_left, fig_right = {}, {}
+        display_left, display_right = {"display": "none"}, {"display": "none"}
 
-        def build_chart(chart_type):
-            """
+        # Check if selected_attr is valid and exists in the ATTRIBUTE_TYPES
+        if not selected_attr or selected_attr not in ATTRIBUTE_TYPES:
+            print("No valid attribute selected.")
+            return fig_left, fig_right, display_left, display_right, [], [], None
 
-            Args:
-                chart_type:
+        # Determine the selected attribute type
+        attr_type = ATTRIBUTE_TYPES.get(selected_attr, None)
 
-            Returns:
+        # Populate compatible compare options based on original names
+        compare_options = [
+            {"label": aliases.get(attr, attr), "value": attr}
+            for attr, attr_type_2 in ATTRIBUTE_TYPES.items()
+            if attr_type_2 in COMPATIBLE_TYPES.get(attr_type, []) and attr != selected_attr
+        ]
 
-            """
-            return attribute_charts.create_chart(chart_type, x_attr, y_attr, selected_states)
+        # Populate compatible visualization options
+        viz_options = [
+            {"label": viz.replace("_", " ").capitalize(), "value": viz}
+            for viz in COMPATIBLE_VIZ.get(attr_type, [])
+        ]
 
-        if len(selected_viz) == 1:
-            left_fig = build_chart(selected_viz[0])
-            return left_fig, {}, {'display': 'block'}, {'display': 'none'}
-        else:
-            left_fig = build_chart(selected_viz[0])
-            right_fig = build_chart(selected_viz[1])
-            return left_fig, right_fig, {'display': 'block'}, {'display': 'block'}
+        # Reset visualization dropdown if the selected visualization is not compatible
+        if selected_viz not in [opt["value"] for opt in viz_options]:
+            print("Selected visualization is not compatible. Resetting visualization dropdown.")
+            selected_viz = None
+
+        # Generate figures only if a valid visualization is selected
+        if selected_viz:
+            if selected_viz == "scatter" and compare_attr:
+                fig_left = px.scatter(
+                    df,
+                    x=selected_attr,
+                    y=compare_attr,
+                    title=f"Scatter: {aliases.get(selected_attr, selected_attr)} vs. {aliases.get(compare_attr, compare_attr)}",
+                )
+                display_left = {"display": "block"}
+
+            elif selected_viz == "scatter_trendline" and compare_attr:
+                fig_left = px.scatter(
+                    df,
+                    x=selected_attr,
+                    y=compare_attr,
+                    trendline="ols",
+                    title=f"Scatter with Trendline: {aliases.get(selected_attr, selected_attr)} vs. {aliases.get(compare_attr, compare_attr)}",
+                )
+                display_left = {"display": "block"}
+
+            elif selected_viz == "grouped_bar":
+                grouped = df.groupby(selected_attr, as_index=False).mean()
+                fig_left = px.bar(
+                    grouped,
+                    x=selected_attr,
+                    y=compare_attr,
+                    title=f"Grouped Bar Chart: Avg {aliases.get(compare_attr, compare_attr)} by {aliases.get(selected_attr, selected_attr)}",
+                )
+                display_left = {"display": "block"}
+
+            elif selected_viz == "boxplot" and compare_attr:
+                fig_left = px.box(
+                    df,
+                    x=selected_attr,
+                    y=compare_attr,
+                    title=f"Boxplot: {aliases.get(compare_attr, compare_attr)} by {aliases.get(selected_attr, selected_attr)}",
+                )
+                display_left = {"display": "block"}
+
+            elif selected_viz == "choropleth":
+                # Example choropleth logic (customize as needed)
+                fig_left = px.choropleth(
+                    df_map,
+                    geojson=us_states,
+                    locations="state_name",
+                    color=selected_attr,
+                    scope="usa",
+                    title=f"Choropleth Map: {aliases.get(selected_attr, selected_attr)}",
+                )
+                display_left = {"display": "block"}
+
+        return fig_left, fig_right, display_left, display_right, compare_options, viz_options, selected_viz

@@ -16,6 +16,9 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
       - viz-dropdown (NEW ID)
       - plot-left + plot-right graphs
     """
+    # Filter attributes to include only those in aliases
+    filtered_attributes = [col for col in attributes if col in aliases]
+
     return html.Div(
         className='container',
         children=[
@@ -49,6 +52,7 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                         className='dropdown-container',
                         children=[
                             dcc.RangeSlider(
+                                id='range-slider',
                                 className='datepicker',
                                 min=int(date_min),
                                 max=int(date_max),
@@ -61,52 +65,60 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                                 },
                                 allowCross=False
                             ),
+
                             dcc.Dropdown(
                                 id='states-select',
                                 className='dropdown',
-                                options=[{'label': state, 'value': state} for state in config],
+                                options=[{'label': 'All States', 'value': 'all'}]
+                                         + [{'label': state, 'value': state} for state in config],
                                 multi=True,
                                 placeholder='Select state(s)',
                                 value=[]
                             ),
-                            # -------- NEW: attributes-dropdown (must be label/value pairs) -------
                             dcc.Dropdown(
                                 id='attributes-dropdown',
                                 className='dropdown',
-                                options=[{'label': label, 'value': value} for value, label in aliases.items()],
-                                multi=True,
-                                placeholder='Select attribute(s)'
+                                options=[{'label': aliases[col], 'value': col} for col in filtered_attributes],
+                                placeholder="Select an attribute",
+                                value=None
+                            ),
+                            dcc.Dropdown(
+                                id='compare-attributes-dropdown',
+                                className='dropdown',
+                                options=[],  # Dynamically populated
+                                placeholder="Select an attribute to compare",
+                                value=None
                             ),
                             # -------- NEW: viz-dropdown with chart types --------
                             dcc.Dropdown(
                                 id='viz-dropdown',
                                 className='dropdown',
                                 options=[
-                                    {'label': 'Scatter', 'value': 'scatter',
-                                     'title': 'Compare two numerical attributes.'},
-                                    {'label': 'Bar', 'value': 'bar', 'title': 'Compare averages by state or category.'},
-                                    {'label': 'Boxplot', 'value': 'box',
-                                     'title': 'View data distribution across categories.'},
-                                    {'label': 'Line', 'value': 'line', 'title': 'Visualize trends over time.'},
-                                    {'label': 'Pie', 'value': 'pie', 'title': 'Visualize proportions of categories.'}
+                                    {'label': 'Grouped Bar Chart', 'value': 'grouped_bar'},
+                                    {'label': 'Choropleth Map', 'value': 'choropleth'},
+                                    {'label': 'Scatterplot', 'value': 'scatter'},
+                                    {'label': 'Scatterplot with Size Encoding', 'value': 'scatter_size'},
+                                    {'label': 'Scatterplot with Trendline', 'value': 'scatter_trendline'},
+                                    {'label': 'Stacked Bar Chart', 'value': 'stacked_bar'},
+                                    {'label': 'Side-by-Side Bar Chart', 'value': 'side_by_side_bar'},
+                                    {'label': 'Clustered Bar Chart', 'value': 'clustered_bar'},
+                                    {'label': 'Treemap', 'value': 'treemap'},
+                                    {'label': 'Boxplot', 'value': 'boxplot'}
                                 ],
-                                placeholder='Select visualization(s)',
-                                multi=True
+                                placeholder="Select a visualization",
+                                value=None
                             ),
                         ]
                     ),
-                    # Replace the "plot here" placeholders with two Graphs:
                     html.Div(
                         className='content',
                         children=[
-                            dcc.Graph(id='plot-left',  className='content', style={'display': 'none'}),
+                            dcc.Graph(id='plot-left', className='content', style={'display': 'none'}),
                             dcc.Graph(id='plot-right', className='content', style={'display': 'none'})
                         ]
                     )
                 ]
             ),
-
-            # The existing hidden Stores remain exactly as before
             dcc.Store(id='hovered-state', storage_type='memory'),
             dcc.Store(id='selected-state', storage_type='memory'),
             dcc.Store(
