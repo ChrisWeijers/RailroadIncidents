@@ -1,4 +1,5 @@
 from dash import html, dcc
+from alias import aliases
 from typing import Dict, Any
 
 def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
@@ -73,7 +74,7 @@ def create_layout(config: list, date_min, date_max, attributes) -> html.Div:
                             dcc.Dropdown(
                                 id='attributes-dropdown',
                                 className='dropdown',
-                                options=[{'label': col, 'value': col} for col in attributes],
+                                options=[{'label': aliases.get(col, col), 'value': col} for col in attributes],
                                 multi=True,
                                 placeholder='Select attribute(s)'
                             ),
