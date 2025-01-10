@@ -82,6 +82,19 @@ class Map:
         return self.fig
 
     def add_points(self, df_state: pd.DataFrame, name: str) -> None:
+        """
+        Adds filtered incident points to the map.
+
+        This method takes a DataFrame of incident data, filters the points to include
+        only those within a predefined U.S. polygon, and adds them to the map as a
+        density layer using Plotly.
+
+        Args:
+            df_state (pd.DataFrame): A DataFrame containing accident data with
+                                     columns 'Latitude', 'Longitud', and optionally
+                                     'state_name'.
+            name (str): The name to assign to the density map trace.
+        """
         if df_state is not None and not df_state.empty:
             # Drop rows with invalid Latitude or Longitud values
             df_state = df_state.dropna(subset=['Latitude', 'Longitud'])
@@ -217,11 +230,7 @@ class BarChart:
 
 class LineChart:
     """
-    A class to create and manage a line chart showing incidents over time using Plotly.
-
-    Attributes:
-        df (pd.DataFrame): DataFrame containing incident data.
-        line (go.Figure): The Plotly figure object for the line chart.
+    A class to create a line chart showing incidents over time using Plotly.
     """
 
     def __init__(self, df: pd.DataFrame) -> None:
@@ -229,12 +238,11 @@ class LineChart:
         Initializes the LineChart with incident data.
 
         Args:
-            df (pd.DataFrame): DataFrame containing incident data with date/time information.
+            df (pd.DataFrame): DataFrame containing incident data.
         """
         self.df = df
-        self.line = None
 
-    def create_linechart(self, selected_states: List[str] = None) -> go.Figure:
+    def create(self, selected_states: List[str] = None) -> go.Figure:
         """
         Creates a line chart showing incidents over time, with optional state filtering.
 
@@ -247,7 +255,7 @@ class LineChart:
         # Filter data if states are selected
         plot_df = self.df
         if selected_states and 'all' not in selected_states:
-            plot_df = self.df[self.df['state_name'].isin(selected_states)]
+            plot_df = plot_df[plot_df['state_name'].isin(selected_states)]
 
         # Aggregate by year and month
         time_series = (plot_df.groupby(['year', 'month'])
@@ -260,60 +268,41 @@ class LineChart:
             time_series['month'].astype(str).str.zfill(2) + '-01'
         )
 
-        self.line = go.Figure()
-
-        # Add the line trace
-        self.line.add_trace(
+        # Create the line chart
+        fig = go.Figure()
+        fig.add_trace(
             go.Scatter(
                 x=time_series['date'],
                 y=time_series['crash_count'],
                 mode='lines+markers',
                 line=dict(color='white', width=2),
-                marker=dict(
-                    size=6,
-                    color='white',
-                    line=dict(color='darkgrey', width=1)
-                ),
-                hovertemplate=(
-                        "<b>%{x|%B %Y}</b><br>" +
-                        "Crashes: %{y:,}<extra></extra>"
-                )
+                marker=dict(size=6, color='white', line=dict(color='darkgrey', width=1)),
+                hovertemplate="<b>%{x|%B %Y}</b><br>Crashes: %{y:,}<extra></extra>"
             )
         )
-
-        # Update layout with your dark theme
-        self.line.update_layout(
+        fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             font=dict(color='white'),
             margin=dict(l=40, r=20, t=40, b=20),
             showlegend=False,
             xaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128,128,128,0.2)',
-                tickformat='%b %Y',
-                tickangle=-45,
-                tickfont=dict(size=10)
+                showgrid=True, gridcolor='rgba(128,128,128,0.2)',
+                tickformat='%b %Y', tickangle=-45, tickfont=dict(size=10)
             ),
             yaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128,128,128,0.2)',
+                showgrid=True, gridcolor='rgba(128,128,128,0.2)',
                 tickformat=',d'
             ),
             hovermode='x unified',
             transition={'duration': 500, 'easing': 'elastic-in-out'}
         )
-
-        return self.line
+        return fig
 
 
 class PieChart:
     """
-    A class to create and manage a pie chart showing incident distributions using Plotly.
-
-    Attributes:
-        df (pd.DataFrame): DataFrame containing incident data.
-        pie (go.Figure): The Plotly figure object for the pie chart.
+    A class to create a pie chart showing incident distributions using Plotly.
     """
 
     def __init__(self, df: pd.DataFrame) -> None:
@@ -324,19 +313,15 @@ class PieChart:
             df (pd.DataFrame): DataFrame containing incident data.
         """
         self.df = df
-        self.pie = None
 
-    def create_piechart(self,
-                        category: str = 'state_name',
-                        selected_states: List[str] = None,
-                        top_n: int = 10) -> go.Figure:
+    def create(self, category: str = 'state_name', selected_states: List[str] = None, top_n: int = 10) -> go.Figure:
         """
         Creates a pie chart showing the distribution of incidents by the specified category.
 
         Args:
-            category (str): Column name to group data by (default: 'state_name')
-            selected_states (List[str], optional): List of states to filter data for
-            top_n (int): Number of top categories to show (default: 10)
+            category (str): Column name to group data by (default: 'state_name').
+            selected_states (List[str], optional): List of states to filter data for.
+            top_n (int): Number of top categories to show (default: 10).
 
         Returns:
             go.Figure: The Plotly figure object representing the pie chart.
@@ -344,7 +329,7 @@ class PieChart:
         # Filter data if states are selected
         plot_df = self.df
         if selected_states and 'all' not in selected_states:
-            plot_df = self.df[self.df['state_name'].isin(selected_states)]
+            plot_df = plot_df[plot_df['state_name'].isin(selected_states)]
 
         # Group by category and get counts
         category_counts = (plot_df[category]
@@ -353,14 +338,9 @@ class PieChart:
                            .reset_index())
         category_counts.columns = ['category', 'count']
 
-        # Calculate percentages
-        total = category_counts['count'].sum()
-        category_counts['percentage'] = (category_counts['count'] / total * 100)
-
-        self.pie = go.Figure()
-
-        # Add pie trace
-        self.pie.add_trace(
+        # Create the pie chart
+        fig = go.Figure()
+        fig.add_trace(
             go.Pie(
                 labels=category_counts['category'],
                 values=category_counts['count'],
@@ -370,26 +350,174 @@ class PieChart:
                     line=dict(color='black', width=1)
                 ),
                 textfont=dict(color='black'),
-                hovertemplate=(
-                        "<b>%{label}</b><br>" +
-                        "Count: %{value:,}<br>" +
-                        "Percentage: %{percent:.1%}<extra></extra>"
-                )
+                hovertemplate="<b>%{label}</b><br>Count: %{value:,}<br>Percentage: %{percent:.1%}<extra></extra>"
             )
         )
-
-        # Update layout with your dark theme
-        self.pie.update_layout(
+        fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             font=dict(color='white'),
             margin=dict(l=20, r=20, t=40, b=20),
             showlegend=True,
-            legend=dict(
-                font=dict(color='white'),
-                bgcolor='rgba(0,0,0,0)'
-            ),
+            legend=dict(font=dict(color='white'), bgcolor='rgba(0,0,0,0)'),
             transition={'duration': 500, 'easing': 'elastic-in-out'}
         )
+        return fig
 
-        return self.pie
+
+class ScatterPlot:
+    """A class to create scatter plots based on user-selected attributes."""
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        """
+        Initializes the ScatterPlot with the dataset.
+
+        Args:
+            df (pd.DataFrame): The main dataset.
+        """
+        self.df = df
+
+    def create(self, x_attr: str, y_attr: str, states: List[str] = None) -> go.Figure:
+        """
+        Creates a scatter plot.
+
+        Args:
+            x_attr (str): The attribute for the x-axis.
+            y_attr (str): The attribute for the y-axis.
+            states (List[str], optional): States to filter the data for.
+
+        Returns:
+            go.Figure: The scatter plot figure.
+        """
+        dff = self.df
+        if states and 'all' not in states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        fig = px.scatter(
+            dff,
+            x=x_attr,
+            y=y_attr,
+            color='state_name',
+            title=f"Scatter: {x_attr} vs. {y_attr}"
+        )
+        return fig
+
+
+class BarChart2:
+    """A class to create bar charts based on user-selected attributes."""
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        """
+        Initializes the BarChart with the dataset.
+
+        Args:
+            df (pd.DataFrame): The main dataset.
+        """
+        self.df = df
+
+    def create(self, x_attr: str, states: List[str] = None) -> go.Figure:
+        """
+        Creates a bar chart.
+
+        Args:
+            x_attr (str): The attribute to group and plot.
+            states (List[str], optional): States to filter the data for.
+
+        Returns:
+            go.Figure: The bar chart figure.
+        """
+        dff = self.df
+        if states and 'all' not in states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        grouped = dff.groupby('state_name', as_index=False)[x_attr].mean()
+        fig = px.bar(
+            grouped,
+            x='state_name',
+            y=x_attr,
+            title=f"Bar: avg({x_attr}) by State"
+        )
+        return fig
+
+
+class BoxPlot:
+    """A class to create box plots based on user-selected attributes."""
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        """
+        Initializes the BoxPlot with the dataset.
+
+        Args:
+            df (pd.DataFrame): The main dataset.
+        """
+        self.df = df
+
+    def create(self, x_attr: str, states: List[str] = None) -> go.Figure:
+        """
+        Creates a box plot.
+
+        Args:
+            x_attr (str): The attribute for the y-axis.
+            states (List[str], optional): States to filter the data for.
+
+        Returns:
+            go.Figure: The box plot figure.
+        """
+        dff = self.df
+        if states and 'all' not in states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        fig = px.box(
+            dff,
+            x='state_name',
+            y=x_attr,
+            title=f"Box Plot of {x_attr} by State"
+        )
+        return fig
+
+class AttributeCharts(ScatterPlot, BarChart2, BoxPlot, LineChart, PieChart):
+    """
+    A unified interface to create different types of attribute-based charts.
+
+    This class inherits from ScatterPlot, BarChart, and BoxPlot, allowing users
+    to create any of these charts through a single object.
+    """
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        """
+        Initializes the AttributeCharts object.
+
+        Args:
+            df (pd.DataFrame): The main dataset.
+        """
+        ScatterPlot.__init__(self, df)
+        BarChart2.__init__(self, df)
+        BoxPlot.__init__(self, df)
+        LineChart.__init__(self, df)
+        PieChart.__init__(self, df)
+
+    def create_chart(self, chart_type: str, x_attr: str, y_attr: str = None, states: List[str] = None) -> go.Figure:
+        """
+        Creates the requested chart based on the type.
+
+        Args:
+            chart_type (str): The type of chart ('scatter', 'bar', or 'box').
+            x_attr (str): The attribute for the chart.
+            y_attr (str, optional): The second attribute for scatter plots.
+            states (List[str], optional): States to filter the data for.
+
+        Returns:
+            go.Figure: The requested chart.
+        """
+        if chart_type == 'scatter' and x_attr and y_attr:
+            return self.create(x_attr, y_attr, states)
+        elif chart_type == 'bar' and x_attr:
+            return self.create(x_attr, states)
+        elif chart_type == 'box' and x_attr:
+            return self.create(x_attr, states)
+        elif chart_type == 'line' and states:
+            return LineChart.create(self, states)
+        elif chart_type == 'pie' and y_attr:
+            return self.create(y_attr, states)
+        else:
+            raise ValueError(f"Invalid chart type: {chart_type}")

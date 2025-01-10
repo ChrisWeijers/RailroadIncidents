@@ -1,7 +1,7 @@
 import dash
 from dash import Output, Input, State, callback
 from dash import callback_context
-from GUI.plots import Map, BarChart
+from GUI.plots import Map, BarChart, AttributeCharts
 from dash import html
 import pandas as pd
 from typing import List, Dict, Any
@@ -135,12 +135,14 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
         return fig, bar
 
+    # Initialize AttributeCharts with the dataset
+    attribute_charts = AttributeCharts(df)
+
     @app.callback(
         [Output('plot-left', 'figure'),
          Output('plot-right', 'figure'),
          Output('plot-left', 'style'),
-         Output('plot-right', 'style')
-         ],
+         Output('plot-right', 'style')],
         [
             Input('states-select', 'value'),
             Input('attributes-dropdown', 'value'),
@@ -151,85 +153,38 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
     )
     def update_bottom_charts(selected_states, selected_attrs, selected_viz, display_left, display_right):
         """
-            Renders up to two charts in the bottom placeholders (plot-left, plot-right),
-            based on user selections:
-              - states-select (which states),
-              - attributes-dropdown (which columns),
-              - viz-dropdown (which chart types).
-            """
-        import plotly.express as px
 
-        # 1) If user hasn't selected any visualization, return empty
+        Args:
+            selected_states:
+            selected_attrs:
+            selected_viz:
+            display_left:
+            display_right:
+
+        Returns:
+
+        """
         if not selected_viz:
             return {}, {}, {'display': 'none'}, {'display': 'none'}
 
-        # 2) Filter by selected states (if 'all' not in the list)
-        if selected_states and ('all' not in selected_states):
-            dff = df[df['state_name'].isin(selected_states)]
-        else:
-            dff = df.copy()
-
-        # 3) Decide how to handle multiple attributes
-        #    If user picks 2, we can do x = first, y = second for scatter
         x_attr = selected_attrs[0] if selected_attrs else None
         y_attr = selected_attrs[1] if len(selected_attrs) > 1 else None
 
-        # A small helper function to build a single figure
-        def build_figure(vtype):
-            if not vtype:
-                return {}
+        def build_chart(chart_type):
+            """
 
-            # SCATTER
-            if vtype == 'scatter':
-                if x_attr and y_attr:
-                    fig = px.scatter(
-                        dff,
-                        x=x_attr,
-                        y=y_attr,
-                        color='state_name',
-                        title=f"Scatter: {x_attr} vs. {y_attr}"
-                    )
-                else:
-                    fig = {}
-            # BAR
-            elif vtype == 'bar':
-                # If we have an x_attr, let's group by state and do average
-                if x_attr:
-                    grouped = dff.groupby('state_name', as_index=False)[x_attr].mean()
-                    fig = px.bar(
-                        grouped,
-                        x='state_name',
-                        y=x_attr,
-                        title=f"Bar: avg({x_attr}) by State"
-                    )
-                else:
-                    fig = {}
-            # BOX
-            elif vtype == 'box':
-                if x_attr:
-                    fig = px.box(
-                        dff,
-                        x='state_name',
-                        y=x_attr,
-                        title=f"Box Plot of {x_attr} by State"
-                    )
-                else:
-                    fig = {}
-            else:
-                fig = {}
+            Args:
+                chart_type:
 
-            return fig
+            Returns:
 
-        # 4) If user picked only one chart type, show it on the left
-        #    If user picked 2 or more, show the first on the left, second on the right
+            """
+            return attribute_charts.create_chart(chart_type, x_attr, y_attr, selected_states)
+
         if len(selected_viz) == 1:
-            left_fig = build_figure(selected_viz[0])
-            right_fig = {}
-            display_left = {'display': 'block'}
+            left_fig = build_chart(selected_viz[0])
+            return left_fig, {}, {'display': 'block'}, {'display': 'none'}
         else:
-            left_fig = build_figure(selected_viz[0])
-            right_fig = build_figure(selected_viz[1]) if len(selected_viz) > 1 else {}
-            display_left = {'display': 'block'}
-            display_right = {'display': 'block'}
-
-        return left_fig, right_fig, display_left, display_right
+            left_fig = build_chart(selected_viz[0])
+            right_fig = build_chart(selected_viz[1])
+            return left_fig, right_fig, {'display': 'block'}, {'display': 'block'}

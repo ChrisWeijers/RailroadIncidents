@@ -82,9 +82,13 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                                 id='viz-dropdown',
                                 className='dropdown',
                                 options=[
-                                    {'label': 'Scatter', 'value': 'scatter'},
-                                    {'label': 'Bar',     'value': 'bar'},
-                                    {'label': 'Boxplot', 'value': 'box'}
+                                    {'label': 'Scatter', 'value': 'scatter',
+                                     'title': 'Compare two numerical attributes.'},
+                                    {'label': 'Bar', 'value': 'bar', 'title': 'Compare averages by state or category.'},
+                                    {'label': 'Boxplot', 'value': 'box',
+                                     'title': 'View data distribution across categories.'},
+                                    {'label': 'Line', 'value': 'line', 'title': 'Visualize trends over time.'},
+                                    {'label': 'Pie', 'value': 'pie', 'title': 'Visualize proportions of categories.'}
                                 ],
                                 placeholder='Select visualization(s)',
                                 multi=True
