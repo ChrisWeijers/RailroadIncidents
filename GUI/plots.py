@@ -6,6 +6,7 @@ from GUI.config import US_POLYGON
 import geopandas as gpd
 import statsmodels
 
+
 class Map:
     """
     A class to create and manage an interactive choropleth map using Plotly and Mapbox.
@@ -205,7 +206,7 @@ class BarChart:
                           orientation='h')
 
         self.bar.update_yaxes(visible=False, showticklabels=False)
-        self.bar.update_xaxes(visible=False, showticklabels=False,)
+        self.bar.update_xaxes(visible=False, showticklabels=False, )
 
         self.bar.update_traces(
             textfont=dict(color="white"),
@@ -363,6 +364,8 @@ class PieChart:
             legend=dict(font=dict(color='white'), bgcolor='rgba(0,0,0,0)'),
             transition={'duration': 500, 'easing': 'elastic-in-out'}
         )
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
 
 
@@ -385,6 +388,12 @@ class ScatterPlot:
             color='state_name',
             title=f"Scatter: {x_attr} vs. {y_attr}"
         )
+
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
 
     def create_with_size(self, x_attr: str, y_attr: str, size_attr: str, states: List[str] = None) -> go.Figure:
@@ -401,9 +410,15 @@ class ScatterPlot:
             color='state_name',
             title=f"Scatter: {x_attr} vs. {y_attr} with Size Encoding ({size_attr})"
         )
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
 
-    def create_with_trendline(self, x_attr: str, y_attr: str, trendline: str = "ols", states: List[str] = None) -> go.Figure:
+    def create_with_trendline(self, x_attr: str, y_attr: str, trendline: str = "ols",
+                              states: List[str] = None) -> go.Figure:
         """Creates a scatter plot with a trendline."""
         dff = self.df
         if states and 'all' not in states:
@@ -417,70 +432,12 @@ class ScatterPlot:
             trendline=trendline,
             title=f"Scatter: {x_attr} vs. {y_attr} with Trendline"
         )
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
-
-
-class BarChart:
-    """
-    A class to create and manage a horizontal bar chart using Plotly.
-
-    Attributes:
-        state_count (pd.DataFrame): DataFrame containing the count of incidents per state.
-        bar (go.Figure): The Plotly figure object for the bar chart.
-    """
-
-    def __init__(self, state_count: pd.DataFrame) -> None:
-        """
-         Initializes the BarChart with state crash count data.
-
-        Args:
-            state_count (pd.DataFrame): DataFrame containing crash counts per state,
-                with 'state_name' and 'crash_count' columns.
-        """
-        self.bar = None
-        self.state_count = state_count
-
-    def create_barchart(self) -> go.Figure:
-        """
-        Generates a horizontal bar chart showing the crash counts for each state.
-
-        Returns:
-            go.Figure: The Plotly figure object representing the bar chart.
-        """
-        # Create bar chart
-        self.bar = px.bar(
-            self.state_count,
-            x='crash_count',
-            y='state_name',
-            text='state_name',
-            hover_data={'crash_count': True},
-            color_discrete_sequence=['white'],
-            orientation='h'
-        )
-
-        self.bar.update_yaxes(visible=False, showticklabels=False)
-        self.bar.update_xaxes(visible=False, showticklabels=False,)
-
-        self.bar.update_traces(
-            textfont=dict(color="white"),
-            textposition='outside',
-            hoverinfo='text',
-            hovertemplate="<b>%{text}</b><br>Crashes: %{x:,}<extra></extra>",
-            hoverlabel=dict(
-                bgcolor="lightgrey",
-                bordercolor="grey",
-                font=dict(size=14, color="black", family="Helvetica")
-            )
-        )
-
-        self.bar.update_layout(
-            uirevision=True,
-            plot_bgcolor='rgba(0, 0, 0, 0)',
-            paper_bgcolor='rgba(0, 0, 0, 0)',
-            margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        )
-
-        return self.bar
 
 
 class GroupedBarChart:
@@ -512,6 +469,11 @@ class GroupedBarChart:
                 y=y_attr,
                 title=f"Bar Chart: {y_attr} by {x_attr}"
             )
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
 
 
@@ -544,6 +506,11 @@ class ClusteredBarChart:
                 y=y_attr,
                 title=f"Bar Chart: {y_attr} by {x_attr}"
             )
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
 
 
@@ -566,16 +533,9 @@ class BoxPlot:
             color=x_attr,
             title=f"Box Plot of {y_attr} by {x_attr}"
         )
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
+                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+
+        fig.update_traces(
+            textfont=dict(color="white"))
         return fig
-
-
-
-    def highlight_state(self, state: str, state_type: str) -> None:
-        """Highlights a specific state on the map."""
-        # Implement state highlighting logic (e.g., changing color or adding a marker)
-        pass
-
-    def add_points(self, df_state: pd.DataFrame, name: str) -> None:
-        """Adds points to the map based on filtered data."""
-        # Implement logic to add points to the map
-        pass

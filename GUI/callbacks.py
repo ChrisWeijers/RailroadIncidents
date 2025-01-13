@@ -1,4 +1,4 @@
-from dash import Output, Input, State
+from dash import Output, Input, State, callback_context
 from GUI.plots import Map, ScatterPlot, BarChart, BoxPlot, GroupedBarChart, ClusteredBarChart
 import pandas as pd
 from typing import List, Dict, Any
@@ -62,7 +62,7 @@ COMPATIBLE_TYPES = {
 
 
 def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any],
-                   df_map: pd.DataFrame, aliases: Dict[str, str]) -> None:
+                    df_map: pd.DataFrame, aliases: Dict[str, str]) -> None:
     """
     Sets up all the callback functions for the Dash application.
 
@@ -82,7 +82,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
                 return df[
                     (df['corrected_year'] >= selected_range[0]) &
                     (df['corrected_year'] <= selected_range[1])
-                ]
+                    ]
         return df.copy()
 
     @app.callback(
@@ -95,40 +95,58 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         if relayout_data:
             new_zoom = relayout_data.get('mapbox.zoom', current_zoom_state.get('zoom', 3))
             new_center = {
-                'lat': relayout_data.get('mapbox.center', {}).get('lat', current_zoom_state.get('center', {}).get('lat', 40.0)),
-                'lon': relayout_data.get('mapbox.center', {}).get('lon', current_zoom_state.get('center', {}).get('lon', -100.0))
+                'lat': relayout_data.get('mapbox.center', {}).get('lat', current_zoom_state.get('center', {}).get('lat',
+                                                                                                                  40.0)),
+                'lon': relayout_data.get('mapbox.center', {}).get('lon', current_zoom_state.get('center', {}).get('lon',
+                                                                                                                  -100.0))
             }
             return {'zoom': new_zoom, 'center': new_center}
         return current_zoom_state
 
     @app.callback(
         Output('states-select', 'value'),
-        [Input('crash-map', 'clickData'), Input('barchart', 'clickData')],
-        [State('states-select', 'value')]
+        [Input('crash-map', 'clickData'),
+         Input('barchart', 'clickData'),
+         Input('states-select', 'value')],
+        [State('selected-state', 'data')]
     )
-    def handle_selection(map_click, bar_click, current_selected):
-        """Update selected states based on user interaction with the map or bar chart."""
-        selected_states = current_selected or []
-        if map_click:
-            state = map_click['points'][0].get('customdata') or map_click['points'][0].get('text', '').split('<br>')[0]
-            if state and state not in selected_states:
-                selected_states.append(state)
-        elif bar_click:
+    def handle_selection(map_click, bar_click, dropdown_selected, current_selected):
+        ctx = callback_context
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+
+        if not isinstance(dropdown_selected, list):
+            dropdown_selected = [dropdown_selected]
+
+        if trigger_id == 'crash-map' and map_click:
+            point_data = map_click['points'][0]
+            state = point_data.get('customdata') or point_data.get('text', '').split('<br>')[0]
+            if state not in dropdown_selected:
+                dropdown_selected.append(state)
+        elif trigger_id == 'barchart' and bar_click:
             state = bar_click['points'][0].get('label') or bar_click['points'][0].get('x')
-            if state and state not in selected_states:
-                selected_states.append(state)
-        return selected_states
+            if state not in dropdown_selected:
+                dropdown_selected.append(state)
+
+        return dropdown_selected
 
     @app.callback(
         Output('hovered-state', 'data'),
-        [Input('crash-map', 'hoverData'), Input('barchart', 'hoverData')]
+        [
+            Input('crash-map', 'hoverData'),
+            Input('barchart', 'hoverData'),
+        ]
     )
     def handle_hover(map_hover, bar_hover):
-        """Highlight states when hovering over them in the map or bar chart."""
-        if map_hover:
-            return map_hover['points'][0].get('customdata') or map_hover['points'][0].get('text', '').split('<br>')[0]
-        elif bar_hover:
+        ctx = callback_context
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+
+        hovered_state = str()
+        if trigger_id == 'crash-map' and map_hover:
+            point_data = map_hover['points'][0]
+            return point_data.get('customdata') or point_data.get('text', '').split('<br>')[0]
+        elif trigger_id == 'barchart' and bar_hover:
             return bar_hover['points'][0].get('label') or bar_hover['points'][0].get('x')
+
         return None
 
     @app.callback(
@@ -136,7 +154,9 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             Output('crash-map', 'figure'),
             Output('barchart', 'figure')
         ],
-        [Input('states-select', 'value'), Input('hovered-state', 'data'), Input('manual-zoom', 'data'),
+        [Input('states-select', 'value'),
+         Input('hovered-state', 'data'),
+         Input('manual-zoom', 'data'),
          Input('range-slider', 'value')]
     )
     def update_map(selected_states, hovered_state, manual_zoom, selected_range):
@@ -144,63 +164,32 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         # Safely filter data using the updated filter_by_range function
         df_filtered = filter_by_range(df, selected_range)
 
-        # **Debug: Print columns of df_filtered**
-        print("df_filtered columns:", df_filtered.columns)
+        us_map = Map(df_filtered, us_states, state_count, manual_zoom)
+        fig_map = us_map.plot_map()
 
         try:
-            us_map = Map(df_filtered, us_states, state_count, manual_zoom)
-            fig_map = us_map.plot_map()
-        except Exception as e:
-            print(f"Error plotting map: {e}")
-            fig_map = {}
-
-        # Create Bar Chart using state_count
-        try:
-            # Ensure required columns exist
-            if 'crash_count' not in state_count.columns or 'state_name' not in state_count.columns:
-                raise ValueError("DataFrame must contain 'crash_count' and 'state_name' columns.")
-
-            bar_chart_instance = BarChart(state_count)
-            fig_barchart = bar_chart_instance.create_barchart()  # **No arguments passed**
-        except Exception as e:
-            print(f"Error creating bar chart: {e}")
-            fig_barchart = {}  # Return an empty figure or a placeholder
+            bar = BarChart(state_count).create_barchart()
+        except:
+            bar = BarChart(state_count).create_barchart()
 
         # Highlight hovered state
         if hovered_state:
-            try:
-                us_map.highlight_state(hovered_state, 'hoverstate')
-            except Exception as e:
-                print(f"Error highlighting state '{hovered_state}': {e}")
+            us_map.highlight_state(hovered_state, 'hoverstate')
 
         # Update based on selected states
-        if selected_states:
-            if 'all' in selected_states:
-                try:
-                    us_map.add_points(df_filtered, 'clickstate')
-                except Exception as e:
-                    print(f"Error adding points for 'all' states: {e}")
-            else:
-                try:
-                    us_map.highlight_state(selected_states, 'clickstate')
-                except Exception as e:
-                    print(f"Error highlighting selected states '{selected_states}': {e}")
+        if not selected_states:
+            us_map.add_points(df_filtered, 'clickstate')
+        else:
+            us_map.highlight_state(selected_states, 'clickstate')
 
-                filtered_states = df_filtered[df_filtered['state_name'].isin(selected_states)]
-                try:
-                    us_map.add_points(filtered_states, 'clickstate')
-                except Exception as e:
-                    print(f"Error adding points for selected states '{selected_states}': {e}")
+            filtered_states = df_filtered[df_filtered['state_name'].isin(selected_states)]
+            us_map.add_points(filtered_states, 'clickstate')
 
+            if len(selected_states) > 1:
                 filtered_state_count = state_count[state_count['state_name'].isin(selected_states)]
-                try:
-                    bar_chart_instance = BarChart(filtered_state_count)
-                    fig_barchart = bar_chart_instance.create_barchart()  # **No arguments passed**
-                except Exception as e:
-                    print(f"Error creating filtered bar chart for states '{selected_states}': {e}")
-                    fig_barchart = {}  # Return an empty figure or a placeholder
+                bar = BarChart(filtered_state_count).create_barchart()
 
-        return fig_map, fig_barchart
+        return fig_map, bar
 
     @app.callback(
         [
