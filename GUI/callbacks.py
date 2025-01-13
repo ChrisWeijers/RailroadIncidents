@@ -253,7 +253,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         try:
             if selected_viz:
                 if selected_viz == 'scatter':
-                    scatter_instance = ScatterPlot(df_filtered)
+                    scatter_instance = ScatterPlot(aliases, df_filtered)
                     fig_left = scatter_instance.create(
                         x_attr=selected_attr,
                         y_attr=compare_attr,
@@ -262,7 +262,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
                     display_left = {'display': 'block'}
 
                 elif selected_viz == 'scatter_size':
-                    scatter_size_instance = ScatterPlot(df_filtered)
+                    scatter_size_instance = ScatterPlot(aliases, df_filtered)
                     fig_left = scatter_size_instance.create_with_size(
                         x_attr=selected_attr,
                         y_attr=compare_attr,
@@ -272,7 +272,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
                     display_left = {'display': 'block'}
 
                 elif selected_viz == 'scatter_trendline':
-                    scatter_trendline_instance = ScatterPlot(df_filtered)
+                    scatter_trendline_instance = ScatterPlot(aliases, df_filtered)
                     fig_left = scatter_trendline_instance.create_with_trendline(
                         x_attr=selected_attr,
                         y_attr=compare_attr,
@@ -283,7 +283,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
                 elif selected_viz == 'grouped_bar':
                     # Use GroupedBarChart with state_count
-                    grouped_bar_instance = GroupedBarChart(state_count)
+                    grouped_bar_instance = GroupedBarChart(aliases, state_count)
                     fig_left = grouped_bar_instance.create(
                         x_attr='state_name',
                         y_attr='crash_count',
@@ -294,7 +294,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
                 elif selected_viz == 'clustered_bar':
                     # Use ClusteredBarChart with state_count
-                    clustered_bar_instance = ClusteredBarChart(state_count)
+                    clustered_bar_instance = ClusteredBarChart(aliases, state_count)
                     fig_left = clustered_bar_instance.create(
                         x_attr='state_name',
                         y_attr='crash_count',
@@ -304,7 +304,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
                     display_left = {'display': 'block'}
 
                 elif selected_viz == 'boxplot':
-                    boxplot_instance = BoxPlot(df_filtered)
+                    boxplot_instance = BoxPlot(aliases, df_filtered)
                     fig_left = boxplot_instance.create(
                         x_attr=selected_attr,
                         y_attr=compare_attr,

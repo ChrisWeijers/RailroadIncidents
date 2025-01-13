@@ -39,6 +39,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
 
     # Correct the years
     df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
+    pd.to_numeric(df['corrected_year'])
 
     df['DATE'] = pd.to_datetime(df['corrected_year'].astype(str) + '-'
                                 + df['MONTH'].astype(str) + '-'

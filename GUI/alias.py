@@ -1,7 +1,7 @@
 aliases = {
     'corrected_year': 'Incident Year',
     'IMO': 'Incident Month',
-    'DATE': 'Date',
+    'DATE': 'Incident Date',
     'RAILROAD': 'Reporting Railroad Code',
     'CARS': 'Hazmat Cars Involved',
     'CARSDMG': 'Hazmat Cars Damaged/Derailed',

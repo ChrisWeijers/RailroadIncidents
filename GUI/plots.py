@@ -256,7 +256,7 @@ class LineChart:
         """
         # Filter data if states are selected
         plot_df = self.df
-        if selected_states and 'all' not in selected_states:
+        if selected_states:
             plot_df = plot_df[plot_df['state_name'].isin(selected_states)]
 
         # Aggregate by year and month
@@ -330,7 +330,7 @@ class PieChart:
         """
         # Filter data if states are selected
         plot_df = self.df
-        if selected_states and 'all' not in selected_states:
+        if selected_states:
             plot_df = plot_df[plot_df['state_name'].isin(selected_states)]
 
         # Group by category and get counts
@@ -372,13 +372,14 @@ class PieChart:
 class ScatterPlot:
     """A class to create scatter plots based on user-selected attributes."""
 
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(self, aliases, df: pd.DataFrame) -> None:
         self.df = df
+        self.aliases = aliases
 
     def create(self, x_attr: str, y_attr: str, states: List[str] = None) -> go.Figure:
         """Creates a basic scatter plot."""
         dff = self.df
-        if states and 'all' not in states:
+        if states:
             dff = dff[dff['state_name'].isin(states)]
 
         fig = px.scatter(
@@ -386,20 +387,20 @@ class ScatterPlot:
             x=x_attr,
             y=y_attr,
             color='state_name',
-            title=f"Scatter: {x_attr} vs. {y_attr}"
+            title=f"Scatter: {self.aliases[x_attr]} vs. {self.aliases[y_attr]}",
+            labels=self.aliases
         )
 
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
-                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+                          paper_bgcolor='rgba(0, 0, 0, 0)',
+                          font_color="white")
 
-        fig.update_traces(
-            textfont=dict(color="white"))
         return fig
 
     def create_with_size(self, x_attr: str, y_attr: str, size_attr: str, states: List[str] = None) -> go.Figure:
         """Creates a scatter plot with size encoding."""
         dff = self.df
-        if states and 'all' not in states:
+        if states:
             dff = dff[dff['state_name'].isin(states)]
 
         fig = px.scatter(
@@ -408,20 +409,20 @@ class ScatterPlot:
             y=y_attr,
             size=size_attr,
             color='state_name',
-            title=f"Scatter: {x_attr} vs. {y_attr} with Size Encoding ({size_attr})"
+            title=f"Scatter: {self.aliases[x_attr]} vs. {self.aliases[y_attr]} with Size Encoding ({self.aliases[size_attr]})",
+            labels=self.aliases
         )
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
-                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+                          paper_bgcolor='rgba(0, 0, 0, 0)',
+                          font_color="white")
 
-        fig.update_traces(
-            textfont=dict(color="white"))
         return fig
 
     def create_with_trendline(self, x_attr: str, y_attr: str, trendline: str = "ols",
                               states: List[str] = None) -> go.Figure:
         """Creates a scatter plot with a trendline."""
         dff = self.df
-        if states and 'all' not in states:
+        if states:
             dff = dff[dff['state_name'].isin(states)]
 
         fig = px.scatter(
@@ -430,26 +431,27 @@ class ScatterPlot:
             y=y_attr,
             color='state_name',
             trendline=trendline,
-            title=f"Scatter: {x_attr} vs. {y_attr} with Trendline"
+            title=f"Scatter: {self.aliases[x_attr]} vs. {self.aliases[y_attr]} with Trendline",
+            labels=self.aliases
         )
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
-                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+                          paper_bgcolor='rgba(0, 0, 0, 0)',
+                          font_color="white")
 
-        fig.update_traces(
-            textfont=dict(color="white"))
         return fig
 
 
 class GroupedBarChart:
     """A class to create grouped bar charts based on user-selected attributes."""
 
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(self, aliases, df: pd.DataFrame) -> None:
         self.df = df
+        self.aliases = aliases
 
     def create(self, x_attr: str, y_attr: str, group_attr: str = None, states: List[str] = None) -> go.Figure:
         """Creates a grouped bar chart."""
         dff = self.df
-        if states and 'all' not in states:
+        if states:
             dff = dff[dff['state_name'].isin(states)]
 
         if group_attr and group_attr in dff.columns:
@@ -459,7 +461,8 @@ class GroupedBarChart:
                 y=y_attr,
                 color=group_attr,
                 barmode='group',
-                title=f"Grouped Bar Chart: {y_attr} by {x_attr} and {group_attr}"
+                title=f"Grouped Bar Chart: {self.aliases[y_attr]} by {self.aliases[x_attr]} and {self.aliases[group_attr]}",
+                labels=self.aliases
             )
         else:
             # Fallback to regular bar chart if group_attr is invalid
@@ -467,26 +470,26 @@ class GroupedBarChart:
                 dff,
                 x=x_attr,
                 y=y_attr,
-                title=f"Bar Chart: {y_attr} by {x_attr}"
+                title=f"Bar Chart: {self.aliases[y_attr]} by {self.aliases[x_attr]}",
+                labels=self.aliases
             )
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
-                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+                          paper_bgcolor='rgba(0, 0, 0, 0)', font_color="white")
 
-        fig.update_traces(
-            textfont=dict(color="white"))
         return fig
 
 
 class ClusteredBarChart:
     """A class to create clustered bar charts based on user-selected attributes."""
 
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(self, aliases, df: pd.DataFrame) -> None:
         self.df = df
+        self.aliases = aliases
 
     def create(self, x_attr: str, y_attr: str, cluster_attr: str = None, states: List[str] = None) -> go.Figure:
         """Creates a clustered bar chart."""
         dff = self.df
-        if states and 'all' not in states:
+        if states:
             dff = dff[dff['state_name'].isin(states)]
 
         if cluster_attr and cluster_attr in dff.columns:
@@ -496,7 +499,8 @@ class ClusteredBarChart:
                 y=y_attr,
                 color=cluster_attr,
                 barmode='group',
-                title=f"Clustered Bar Chart: {y_attr} by {x_attr} and {cluster_attr}"
+                title=f"Clustered Bar Chart: {self.aliases[y_attr]} by {self.aliases[x_attr]} and {self.aliases[cluster_attr]}",
+                labels=self.aliases
             )
         else:
             # Fallback to regular bar chart if cluster_attr is invalid
@@ -504,26 +508,27 @@ class ClusteredBarChart:
                 dff,
                 x=x_attr,
                 y=y_attr,
-                title=f"Bar Chart: {y_attr} by {x_attr}"
+                title=f"Bar Chart: {self.aliases[y_attr]} by {self.aliases[x_attr]}",
+                labels=self.aliases
             )
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
-                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+                          paper_bgcolor='rgba(0, 0, 0, 0)',
+                          font_color="white")
 
-        fig.update_traces(
-            textfont=dict(color="white"))
         return fig
 
 
 class BoxPlot:
     """A class to create box plots based on user-selected attributes."""
 
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(self, aliases, df: pd.DataFrame) -> None:
         self.df = df
+        self.aliases = aliases
 
     def create(self, x_attr: str, y_attr: str, states: List[str] = None) -> go.Figure:
         """Creates a box plot."""
         dff = self.df
-        if states and 'all' not in states:
+        if states:
             dff = dff[dff['state_name'].isin(states)]
 
         fig = px.box(
@@ -531,11 +536,11 @@ class BoxPlot:
             x=x_attr,
             y=y_attr,
             color=x_attr,
-            title=f"Box Plot of {y_attr} by {x_attr}"
+            title=f"Box Plot of {self.aliases[y_attr]} by {self.aliases[x_attr]}",
+            labels=self.aliases
         )
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)',
-                          paper_bgcolor='rgba(0, 0, 0, 0)', )
+                          paper_bgcolor='rgba(0, 0, 0, 0)',
+                          font_color="white")
 
-        fig.update_traces(
-            textfont=dict(color="white"))
         return fig
