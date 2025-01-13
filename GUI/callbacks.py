@@ -7,6 +7,7 @@ ATTRIBUTE_TYPES = {
     "corrected_year": "Ordered Quantitative",
     "IMO": "Ordered Cyclic",
     "RAILROAD": "Categorical",
+    'TYPE': 'Categorical',
     "CARS": "Ordered Quantitative",
     "CARSDMG": "Ordered Quantitative",
     "CARSHZD": "Ordered Quantitative",
