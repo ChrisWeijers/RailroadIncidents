@@ -1,8 +1,11 @@
-aliases = {
+from typing import Dict
+
+aliases: Dict = {
     'corrected_year': 'Incident Year',
     'IMO': 'Incident Month',
     'DATE': 'Incident Date',
     'RAILROAD': 'Reporting Railroad Code',
+    'TYPE': 'Type of Incident',
     'CARS': 'Hazmat Cars Involved',
     'CARSDMG': 'Hazmat Cars Damaged/Derailed',
     'CARSHZD': 'Hazmat Cars Released',
@@ -31,4 +34,36 @@ aliases = {
     'BRAKEMEN': 'Brakemen on Duty',
     'ALCOHOL': 'Positive Alcohol Tests',
     'DRUG': 'Positive Drug Tests',
+}
+
+incident_types: Dict = {
+    '01': 'Derailment',
+    '02': 'Head on collision',
+    '03': 'Rearend collision',
+    '04': 'Side collision',
+    '05': 'Raking collision',
+    '06': 'Broken train collision',
+    '07': 'Hwy-rail crossing',
+    '08': 'RR Grade Crossing',
+    '09': 'Obstruction',
+    '10': 'Explosive-detonation',
+    '11': 'Fire/Violent rupture',
+    '12': 'Other impacts',
+    '13': 'Other (described in narration)'
+}
+
+visibility: Dict = {
+    1: 'Dawn',
+    2: 'Day',
+    3: 'Dusk',
+    4: 'Dark',
+}
+
+weather: Dict = {
+    1: 'Clear',
+    2: 'Cloudy',
+    3: 'Rain',
+    4: 'Fog',
+    5: 'Sleet',
+    6: 'Snow',
 }
