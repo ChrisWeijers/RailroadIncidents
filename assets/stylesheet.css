@@ -4,12 +4,11 @@ body, html {
     height: 100%;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background-color: #2b2b2b;
-    overflow: hidden;
 }
 
 .container {
     display: grid;
-    grid-template-rows: 45% 55%; /* Split the container into top and bottom parts */
+    grid-template-rows: 50% 50%; /* Split the container into top and bottom parts */
     height: 100vh; /* Full viewport height */
 }
 
@@ -17,8 +16,6 @@ body, html {
 .top {
     display: grid;
     grid-template-columns: 40% 60%; /* Split the top part horizontally */
-    gap: 1%; /* Add spacing between plots */
-    padding: 1%; /* Padding around the plots */
 }
 
 /* Bottom section for controls and graphs */
@@ -28,6 +25,8 @@ body, html {
     background-color: #1e1e1e;
     padding: 10px; /* Padding inside the bottom section */
     gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Styling for individual sections */
@@ -36,8 +35,6 @@ body, html {
     align-items: center;
     justify-content: center;
     background-color: #202020;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .left {
