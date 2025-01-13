@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Dict, Any, List
 from GUI.config import US_POLYGON
 import geopandas as gpd
+import statsmodels
 
 class Map:
     """
@@ -369,26 +370,10 @@ class ScatterPlot:
     """A class to create scatter plots based on user-selected attributes."""
 
     def __init__(self, df: pd.DataFrame) -> None:
-        """
-        Initializes the ScatterPlot with the dataset.
-
-        Args:
-            df (pd.DataFrame): The main dataset.
-        """
         self.df = df
 
     def create(self, x_attr: str, y_attr: str, states: List[str] = None) -> go.Figure:
-        """
-        Creates a scatter plot.
-
-        Args:
-            x_attr (str): The attribute for the x-axis.
-            y_attr (str): The attribute for the y-axis.
-            states (List[str], optional): States to filter the data for.
-
-        Returns:
-            go.Figure: The scatter plot figure.
-        """
+        """Creates a basic scatter plot."""
         dff = self.df
         if states and 'all' not in states:
             dff = dff[dff['state_name'].isin(states)]
@@ -402,41 +387,163 @@ class ScatterPlot:
         )
         return fig
 
-
-class BarChart2:
-    """A class to create bar charts based on user-selected attributes."""
-
-    def __init__(self, df: pd.DataFrame) -> None:
-        """
-        Initializes the BarChart with the dataset.
-
-        Args:
-            df (pd.DataFrame): The main dataset.
-        """
-        self.df = df
-
-    def create(self, x_attr: str, states: List[str] = None) -> go.Figure:
-        """
-        Creates a bar chart.
-
-        Args:
-            x_attr (str): The attribute to group and plot.
-            states (List[str], optional): States to filter the data for.
-
-        Returns:
-            go.Figure: The bar chart figure.
-        """
+    def create_with_size(self, x_attr: str, y_attr: str, size_attr: str, states: List[str] = None) -> go.Figure:
+        """Creates a scatter plot with size encoding."""
         dff = self.df
         if states and 'all' not in states:
             dff = dff[dff['state_name'].isin(states)]
 
-        grouped = dff.groupby('state_name', as_index=False)[x_attr].mean()
-        fig = px.bar(
-            grouped,
-            x='state_name',
-            y=x_attr,
-            title=f"Bar: avg({x_attr}) by State"
+        fig = px.scatter(
+            dff,
+            x=x_attr,
+            y=y_attr,
+            size=size_attr,
+            color='state_name',
+            title=f"Scatter: {x_attr} vs. {y_attr} with Size Encoding ({size_attr})"
         )
+        return fig
+
+    def create_with_trendline(self, x_attr: str, y_attr: str, trendline: str = "ols", states: List[str] = None) -> go.Figure:
+        """Creates a scatter plot with a trendline."""
+        dff = self.df
+        if states and 'all' not in states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        fig = px.scatter(
+            dff,
+            x=x_attr,
+            y=y_attr,
+            color='state_name',
+            trendline=trendline,
+            title=f"Scatter: {x_attr} vs. {y_attr} with Trendline"
+        )
+        return fig
+
+
+class BarChart:
+    """
+    A class to create and manage a horizontal bar chart using Plotly.
+
+    Attributes:
+        state_count (pd.DataFrame): DataFrame containing the count of incidents per state.
+        bar (go.Figure): The Plotly figure object for the bar chart.
+    """
+
+    def __init__(self, state_count: pd.DataFrame) -> None:
+        """
+         Initializes the BarChart with state crash count data.
+
+        Args:
+            state_count (pd.DataFrame): DataFrame containing crash counts per state,
+                with 'state_name' and 'crash_count' columns.
+        """
+        self.bar = None
+        self.state_count = state_count
+
+    def create_barchart(self) -> go.Figure:
+        """
+        Generates a horizontal bar chart showing the crash counts for each state.
+
+        Returns:
+            go.Figure: The Plotly figure object representing the bar chart.
+        """
+        # Create bar chart
+        self.bar = px.bar(
+            self.state_count,
+            x='crash_count',
+            y='state_name',
+            text='state_name',
+            hover_data={'crash_count': True},
+            color_discrete_sequence=['white'],
+            orientation='h'
+        )
+
+        self.bar.update_yaxes(visible=False, showticklabels=False)
+        self.bar.update_xaxes(visible=False, showticklabels=False,)
+
+        self.bar.update_traces(
+            textfont=dict(color="white"),
+            textposition='outside',
+            hoverinfo='text',
+            hovertemplate="<b>%{text}</b><br>Crashes: %{x:,}<extra></extra>",
+            hoverlabel=dict(
+                bgcolor="lightgrey",
+                bordercolor="grey",
+                font=dict(size=14, color="black", family="Helvetica")
+            )
+        )
+
+        self.bar.update_layout(
+            uirevision=True,
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor='rgba(0, 0, 0, 0)',
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        )
+
+        return self.bar
+
+
+class GroupedBarChart:
+    """A class to create grouped bar charts based on user-selected attributes."""
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        self.df = df
+
+    def create(self, x_attr: str, y_attr: str, group_attr: str = None, states: List[str] = None) -> go.Figure:
+        """Creates a grouped bar chart."""
+        dff = self.df
+        if states and 'all' not in states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        if group_attr and group_attr in dff.columns:
+            fig = px.bar(
+                dff,
+                x=x_attr,
+                y=y_attr,
+                color=group_attr,
+                barmode='group',
+                title=f"Grouped Bar Chart: {y_attr} by {x_attr} and {group_attr}"
+            )
+        else:
+            # Fallback to regular bar chart if group_attr is invalid
+            fig = px.bar(
+                dff,
+                x=x_attr,
+                y=y_attr,
+                title=f"Bar Chart: {y_attr} by {x_attr}"
+            )
+        return fig
+
+
+class ClusteredBarChart:
+    """A class to create clustered bar charts based on user-selected attributes."""
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        self.df = df
+
+    def create(self, x_attr: str, y_attr: str, cluster_attr: str = None, states: List[str] = None) -> go.Figure:
+        """Creates a clustered bar chart."""
+        dff = self.df
+        if states and 'all' not in states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        if cluster_attr and cluster_attr in dff.columns:
+            fig = px.bar(
+                dff,
+                x=x_attr,
+                y=y_attr,
+                color=cluster_attr,
+                barmode='group',
+                title=f"Clustered Bar Chart: {y_attr} by {x_attr} and {cluster_attr}"
+            )
+        else:
+            # Fallback to regular bar chart if cluster_attr is invalid
+            fig = px.bar(
+                dff,
+                x=x_attr,
+                y=y_attr,
+                title=f"Bar Chart: {y_attr} by {x_attr}"
+            )
         return fig
 
 
@@ -444,80 +551,31 @@ class BoxPlot:
     """A class to create box plots based on user-selected attributes."""
 
     def __init__(self, df: pd.DataFrame) -> None:
-        """
-        Initializes the BoxPlot with the dataset.
-
-        Args:
-            df (pd.DataFrame): The main dataset.
-        """
         self.df = df
 
-    def create(self, x_attr: str, states: List[str] = None) -> go.Figure:
-        """
-        Creates a box plot.
-
-        Args:
-            x_attr (str): The attribute for the y-axis.
-            states (List[str], optional): States to filter the data for.
-
-        Returns:
-            go.Figure: The box plot figure.
-        """
+    def create(self, x_attr: str, y_attr: str, states: List[str] = None) -> go.Figure:
+        """Creates a box plot."""
         dff = self.df
         if states and 'all' not in states:
             dff = dff[dff['state_name'].isin(states)]
 
         fig = px.box(
             dff,
-            x='state_name',
-            y=x_attr,
-            title=f"Box Plot of {x_attr} by State"
+            x=x_attr,
+            y=y_attr,
+            color=x_attr,
+            title=f"Box Plot of {y_attr} by {x_attr}"
         )
         return fig
 
-class AttributeCharts(ScatterPlot, BarChart2, BoxPlot, LineChart, PieChart):
-    """
-    A unified interface to create different types of attribute-based charts.
 
-    This class inherits from ScatterPlot, BarChart, and BoxPlot, allowing users
-    to create any of these charts through a single object.
-    """
 
-    def __init__(self, df: pd.DataFrame) -> None:
-        """
-        Initializes the AttributeCharts object.
+    def highlight_state(self, state: str, state_type: str) -> None:
+        """Highlights a specific state on the map."""
+        # Implement state highlighting logic (e.g., changing color or adding a marker)
+        pass
 
-        Args:
-            df (pd.DataFrame): The main dataset.
-        """
-        ScatterPlot.__init__(self, df)
-        BarChart2.__init__(self, df)
-        BoxPlot.__init__(self, df)
-        LineChart.__init__(self, df)
-        PieChart.__init__(self, df)
-
-    def create_chart(self, chart_type: str, x_attr: str, y_attr: str = None, states: List[str] = None) -> go.Figure:
-        """
-        Creates the requested chart based on the type.
-
-        Args:
-            chart_type (str): The type of chart ('scatter', 'bar', or 'box').
-            x_attr (str): The attribute for the chart.
-            y_attr (str, optional): The second attribute for scatter plots.
-            states (List[str], optional): States to filter the data for.
-
-        Returns:
-            go.Figure: The requested chart.
-        """
-        if chart_type == 'scatter' and x_attr and y_attr:
-            return self.create(x_attr, y_attr, states)
-        elif chart_type == 'bar' and x_attr:
-            return self.create(x_attr, states)
-        elif chart_type == 'box' and x_attr:
-            return self.create(x_attr, states)
-        elif chart_type == 'line' and states:
-            return LineChart.create(self, states)
-        elif chart_type == 'pie' and y_attr:
-            return self.create(y_attr, states)
-        else:
-            raise ValueError(f"Invalid chart type: {chart_type}")
+    def add_points(self, df_state: pd.DataFrame, name: str) -> None:
+        """Adds points to the map based on filtered data."""
+        # Implement logic to add points to the map
+        pass
