@@ -4,7 +4,7 @@ import json
 from typing import Tuple, Dict, Any, List
 
 
-def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any], List, pd.DataFrame]:
+def get_data(range) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any], List, pd.DataFrame]:
     """
     Loads, cleans, and prepares the data for the Dash application.
 
@@ -41,6 +41,9 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
     pd.to_numeric(df['corrected_year'])
 
+    if range is not None:
+        df = df[(df['corrected_year'] >= range[0]) & (df['corrected_year'] <= range[1])]
+
     df['DATE'] = pd.to_datetime(df['corrected_year'].astype(str) + '-'
                                 + df['MONTH'].astype(str) + '-'
                                 + df['DAY'].astype(str),
@@ -63,7 +66,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
                                                                                               ascending=False)
     diff = pd.concat([states_center['Name'], state_count['state_name']]).drop_duplicates(keep=False).to_frame()
     diff.columns = ['state_name']
-    diff.insert(1, 'crash_count', [0, 0, 0])
+    diff.insert(1, 'crash_count', [0 for i in diff['state_name']])
     state_count = state_count._append(diff)
 
     # Create alphabetically sorted state list for dropdown

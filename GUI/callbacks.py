@@ -3,10 +3,11 @@ from GUI.plots import Map, ScatterPlot, BarChart, BoxPlot, GroupedBarChart, Clus
 import pandas as pd
 from typing import List, Dict, Any
 from GUI.alias import (groups, ATTRIBUTE_TYPES, COMPATIBLE_TYPES, COMPATIBLE_VIZ,
-                      create_grouped_options, create_comparison_options)
+                       create_grouped_options, create_comparison_options)
+from GUI.data import get_data
 
-def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any],
-                    df_map: pd.DataFrame, aliases: Dict[str, str]) -> None:
+
+def setup_callbacks(app, aliases: Dict[str, str]) -> None:
     """
     Sets up all the callback functions for the Dash application.
 
@@ -19,15 +20,11 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
         aliases (Dict[str, str]): Dictionary mapping attribute names to their aliases.
     """
 
-    def filter_by_range(df, selected_range):
+    def filter_by_range(selected_range):
         """Helper function to filter data by the selected range."""
-        if selected_range and isinstance(selected_range, (list, tuple)) and len(selected_range) == 2:
-            if 'corrected_year' in df.columns:
-                return df[
-                    (df['corrected_year'] >= selected_range[0]) &
-                    (df['corrected_year'] <= selected_range[1])
-                    ]
-        return df.copy()
+        df, states_center, state_count, us_states, states_alphabetical, df_map = get_data(selected_range)
+
+        return df, states_center, state_count, us_states, states_alphabetical, df_map
 
     @app.callback(
         Output('manual-zoom', 'data'),
@@ -106,9 +103,9 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
     def update_map(selected_states, hovered_state, manual_zoom, selected_range):
         """Update map and bar chart based on state selection, hover, and date range."""
         # Safely filter data using the updated filter_by_range function
-        df_filtered = filter_by_range(df, selected_range)
+        df, states_center, state_count, us_states, states_alphabetical, df_map = filter_by_range(selected_range)
 
-        us_map = Map(df_filtered, us_states, state_count, manual_zoom)
+        us_map = Map(df_map, us_states, state_count, manual_zoom)
         fig_map = us_map.plot_map()
 
         try:
@@ -122,11 +119,11 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
 
         # Update based on selected states
         if not selected_states:
-            us_map.add_points(df_filtered, 'clickstate')
+            us_map.add_points(df_map, 'clickstate')
         else:
             us_map.highlight_state(selected_states, 'clickstate')
 
-            filtered_states = df_filtered[df_filtered['state_name'].isin(selected_states)]
+            filtered_states = df_map[df_map['state_name'].isin(selected_states)]
             us_map.add_points(filtered_states, 'clickstate')
 
             if len(selected_states) > 1:
@@ -176,7 +173,8 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             return default_outputs
 
         # Safely filter data using the updated filter_by_range function
-        df_filtered = filter_by_range(df, selected_range)
+        df_filtered, states_center, state_count, us_states, states_alphabetical, df_map = filter_by_range(
+            selected_range)
 
         attr_type = ATTRIBUTE_TYPES.get(selected_attr)
         if not attr_type:
@@ -184,7 +182,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             return default_outputs
 
         # Update compare options based on compatible types
-        compare_options = create_comparison_options(df.columns, aliases, attr_type, selected_attr)
+        compare_options = create_comparison_options(df_filtered.columns, aliases, attr_type, selected_attr)
 
         # Initialize charts
         fig_left, fig_right = empty_fig, empty_fig
