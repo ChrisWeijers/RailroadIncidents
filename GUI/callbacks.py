@@ -2,65 +2,8 @@ from dash import Output, Input, State, callback_context
 from GUI.plots import Map, ScatterPlot, BarChart, BoxPlot, GroupedBarChart, ClusteredBarChart
 import pandas as pd
 from typing import List, Dict, Any
-
-ATTRIBUTE_TYPES = {
-    "corrected_year": "Ordered Quantitative",
-    "IMO": "Ordered Cyclic",
-    "RAILROAD": "Categorical",
-    'TYPE': 'Categorical',
-    "CARS": "Ordered Quantitative",
-    "CARSDMG": "Ordered Quantitative",
-    "CARSHZD": "Ordered Quantitative",
-    "EVACUATE": "Ordered Quantitative",
-    "TEMP": "Ordered Quantitative",
-    "VISIBILITY": "Ordered Sequential",
-    "WEATHER": "Categorical",
-    "TRNSPD": "Ordered Quantitative",
-    "TONS": "Ordered Quantitative",
-    "LOADF1": "Ordered Quantitative",
-    "LOADP1": "Ordered Quantitative",
-    "EMPTYF1": "Ordered Quantitative",
-    "EMPTYP1": "Ordered Quantitative",
-    "LOADF2": "Ordered Quantitative",
-    "LOADP2": "Ordered Quantitative",
-    "EMPTYF2": "Ordered Quantitative",
-    "EMPTYP2": "Ordered Quantitative",
-    "ACCDMG": "Ordered Quantitative",
-    "EQPDMG": "Ordered Quantitative",
-    "TRKDMG": "Ordered Quantitative",
-    "TOTINJ": "Ordered Quantitative",
-    "TOTKLD": "Ordered Quantitative",
-    "ENGRS": "Ordered Quantitative",
-    "FIREMEN": "Ordered Quantitative",
-    "CONDUCTR": "Ordered Quantitative",
-    "BRAKEMEN": "Ordered Quantitative",
-    "ALCOHOL": "Ordered Quantitative",
-    "DRUG": "Ordered Quantitative",
-}
-
-# Define compatible visualizations for each attribute type
-COMPATIBLE_VIZ = {
-    "Categorical": ["grouped_bar"],
-    "Ordered Quantitative": [
-        "scatter",
-        "scatter_size",
-        "scatter_trendline",
-        "boxplot",
-    ],
-    "Ordered Sequential": [
-        "clustered_bar",
-    ],
-    "Ordered Cyclic": ["scatter_trendline"],
-}
-
-# Define compatible attribute types for comparisons
-COMPATIBLE_TYPES = {
-    "Categorical": ["Categorical", "Ordered Quantitative"],
-    "Ordered Quantitative": ["Ordered Quantitative", "Categorical"],
-    "Ordered Sequential": ["Ordered Sequential", "Ordered Quantitative"],
-    "Ordered Cyclic": ["Ordered Cyclic", "Ordered Quantitative"],
-}
-
+from GUI.alias import (groups, ATTRIBUTE_TYPES, COMPATIBLE_TYPES, COMPATIBLE_VIZ,
+                      create_grouped_options, create_comparison_options)
 
 def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states: Dict[str, Any],
                     df_map: pd.DataFrame, aliases: Dict[str, str]) -> None:
@@ -241,11 +184,7 @@ def setup_callbacks(app, df: pd.DataFrame, state_count: pd.DataFrame, us_states:
             return default_outputs
 
         # Update compare options based on compatible types
-        compare_options = [
-            {"label": aliases.get(attr, attr), "value": attr}
-            for attr, type_ in ATTRIBUTE_TYPES.items()
-            if type_ in COMPATIBLE_TYPES.get(attr_type, []) and attr != selected_attr
-        ]
+        compare_options = create_comparison_options(df.columns, aliases, attr_type, selected_attr)
 
         # Initialize charts
         fig_left, fig_right = empty_fig, empty_fig

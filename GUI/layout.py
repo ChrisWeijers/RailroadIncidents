@@ -1,4 +1,5 @@
 from dash import html, dcc
+from GUI.alias import create_grouped_options
 
 def create_layout(config: list, date_min, date_max, attributes, aliases) -> html.Div:
     """
@@ -72,12 +73,10 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                             dcc.Dropdown(
                                 id="attributes-dropdown",
                                 className="dropdown",
-                                options=[
-                                    {"label": aliases[col], "value": col}
-                                    for col in filtered_attributes
-                                ],
+                                options=create_grouped_options(filtered_attributes, aliases),
                                 placeholder="Select an attribute",
                                 value=None,
+                                clearable=True,
                             ),
                             dcc.Dropdown(
                                 id="compare-attributes-dropdown",
