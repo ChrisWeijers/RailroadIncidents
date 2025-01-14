@@ -53,6 +53,7 @@ groups: Dict[str, List[str]] = {
 ATTRIBUTE_TYPES: Dict[str,str] = {
     "corrected_year": "Ordered Quantitative",
     "IMO": "Ordered Cyclic",
+    "DATE": "Ordered Quantitative",
     "RAILROAD": "Categorical",
     'TYPE': 'Categorical',
     "CARS": "Ordered Quantitative",
