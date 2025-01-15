@@ -8,62 +8,97 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
         config (list): List of states for the states-select dropdown.
         date_min (int): Minimum year for the range slider.
         date_max (int): Maximum year for the range slider.
+        attributes (list): Additional attributes if needed (placeholder).
+        aliases (dict): Aliases for advanced labeling (placeholder).
 
     Returns:
         html.Div: The Dash application layout.
     """
-    # Single dropdown with your 11 new visualization options:
+    # 18 items corresponding to each domain question
     viz_options = [
+        # ----- (1) Analyzing Temporal Trends -----
         {
-            "label": "1. Compare total accidents & hazmat cars involved (Scatter)",
-            "value": "scatter_accidents_hazmat",
+            "label": "1.1 Are total incidents increasing/decreasing over time?",
+            "value": "plot_1_1",
         },
         {
-            "label": "2. Compare hazmat cars damaged/derailed & released (Scatter w/size)",
-            "value": "scatter_hazmat_damaged_vs_released",
+            "label": "1.2 Which incident types show biggest changes over time?",
+            "value": "plot_1_2",
         },
         {
-            "label": "3. Compare total accidents by state (Bar or Choropleth)",
-            "value": "compare_accidents_by_state",
+            "label": "1.3 Any noticeable seasonal patterns?",
+            "value": "plot_1_3",
+        },
+        # ----- (2) Spatial Patterns -----
+        {
+            "label": "2.1 Highest geographic concentration of incidents?",
+            "value": "plot_2_1",
         },
         {
-            "label": "4. Compare people injured/killed & hazmat cars (Scatter)",
-            "value": "scatter_injured_killed_hazmat",
+            "label": "2.2 Geographic factors (urban, mountains) vs. incident rates?",
+            "value": "plot_2_2",
         },
         {
-            "label": "5. Compare total damage, equipment damage, track damage (Stacked/TreeMap)",
-            "value": "stacked_damage_components",
+            "label": "2.3 Distribution differences for various incident types?",
+            "value": "plot_2_3",
+        },
+        # ----- (3) Contributing Factors -----
+        {
+            "label": "3.1 Which factors (speed, weather, track) correlate strongly?",
+            "value": "plot_3_1",
         },
         {
-            "label": "6. Compare total damage & derailed loaded freight cars (Scatter)",
-            "value": "scatter_damage_freight",
+            "label": "3.2 How do these factors affect severity (damage, injuries)?",
+            "value": "plot_3_2",
         },
         {
-            "label": "7. Compare accidents & positive/negative drug tests (Stacked Bar)",
-            "value": "stacked_drug_tests",
+            "label": "3.3 Specific factor combos that often precede incidents?",
+            "value": "plot_3_3",
+        },
+        # ----- (4) Operator Performance -----
+        {
+            "label": "4.1 Compare overall incident rates across operators",
+            "value": "plot_4_1",
         },
         {
-            "label": "8. Compare total accidents & train speed (Scatter)",
-            "value": "scatter_accidents_speed",
+            "label": "4.2 Differences in incident types by operator",
+            "value": "plot_4_2",
         },
         {
-            "label": "9. Compare people injured/killed & derailed loaded passenger cars (Scatter)",
-            "value": "scatter_injured_passenger",
+            "label": "4.3 Which operator is higher/lower for specific incidents?",
+            "value": "plot_4_3",
+        },
+        # ----- (5) High-Impact Incidents -----
+        {
+            "label": "5.1 Primary & secondary causes of high-impact incidents?",
+            "value": "plot_5_1",
         },
         {
-            "label": "10. Compare brakemen on duty vs. freight derailments (Clustered Bar)",
-            "value": "clustered_brakemen_freight",
+            "label": "5.2 Common circumstances in these severe incidents?",
+            "value": "plot_5_2",
         },
         {
-            "label": "11. Compare total damage & loaded passenger cars (Scatter)",
-            "value": "scatter_damage_passenger",
+            "label": "5.3 Preventable factors in high-impact incidents?",
+            "value": "plot_5_3",
+        },
+        # ----- (6) Summarizing Incident Characteristics -----
+        {
+            "label": "6.1 Most common types of railroad incidents?",
+            "value": "plot_6_1",
+        },
+        {
+            "label": "6.2 Most frequently cited primary causes?",
+            "value": "plot_6_2",
+        },
+        {
+            "label": "6.3 Avg damage cost among different incident types?",
+            "value": "plot_6_3",
         },
     ]
 
     return html.Div(
         className="container",
         children=[
-            # -------------- Top Section (Unchanged) --------------
             html.Div(
                 className="top",
                 children=[
@@ -84,7 +119,6 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                     ),
                 ],
             ),
-            # -------------- Bottom Section (Refactored) --------------
             html.Div(
                 className="bottom",
                 children=[
@@ -105,9 +139,7 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                             dcc.Dropdown(
                                 id="states-select",
                                 className="dropdown",
-                                options=[
-                                    {"label": state, "value": state} for state in config
-                                ],
+                                options=[{"label": s, "value": s} for s in config],
                                 multi=True,
                                 placeholder="Select state(s)",
                                 value=[],
@@ -116,7 +148,7 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                                 id="viz-dropdown",
                                 className="dropdown",
                                 options=viz_options,
-                                placeholder="Select a visualization",
+                                placeholder="Select a question/visualization",
                                 value=None,
                                 clearable=True,
                             ),
@@ -125,7 +157,6 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                     html.Div(
                         className="content",
                         children=[
-                            # We’ll only use plot-left here; you can use plot-right if needed
                             dcc.Graph(
                                 id="plot-left",
                                 className="content",
@@ -140,7 +171,6 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                     ),
                 ],
             ),
-            # Hidden dcc.Store components remain the same if you use them
             dcc.Store(id="hovered-state", storage_type="memory"),
             dcc.Store(id="selected-state", storage_type="memory"),
             dcc.Store(
