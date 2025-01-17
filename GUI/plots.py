@@ -3,18 +3,12 @@ import plotly.graph_objects as go
 import pandas as pd
 from typing import Dict, Any, List
 import geopandas as gpd
-
-# If you have a config for the US polygon:
-try:
-    from GUI.config import US_POLYGON  # or wherever your polygon/geo is defined
-except ImportError:
-    # If you don't have US_POLYGON, comment this out or provide your own polygon
-    US_POLYGON = None
+from GUI.config import US_POLYGON
 
 
 class Map:
     """
-    A class to create and manage an interactive choropleth map using Plotly and Mapbox.
+    A class to create and manage an interactive choropleth map using Plotly and OpenStreetMap with OpenRailwayMap.
     Useful if you want to add a second map in the bottom area as well,
     or do specialized mapping for (2) Spatial Patterns.
     """
@@ -34,6 +28,26 @@ class Map:
         self.state_count = state_count
         self.manual_zoom = manual_zoom
         self.fig = go.Figure()
+        self.state_coords = {}
+        self._cache_state_geometries()
+
+    def _cache_state_geometries(self) -> None:
+        """Pre-compute state boundary coordinates."""
+        if not hasattr(self, 'state_coords'):
+            self.state_coords = {}
+
+        for feature in self.us_states['features']:
+            state_name = feature['properties']['name']
+            geom = feature['geometry']
+
+            if geom['type'] == 'Polygon':
+                self.state_coords[state_name] = geom['coordinates'][0]
+            elif geom['type'] == 'MultiPolygon':
+                all_coords = []
+                for polygon in geom['coordinates']:
+                    all_coords.extend(polygon[0])
+                    all_coords.append([None, None])
+                self.state_coords[state_name] = all_coords
 
     def plot_map(self) -> go.Figure:
         """
@@ -72,7 +86,21 @@ class Map:
         zoom = self.manual_zoom.get("zoom", 3)
 
         self.fig.update_layout(
-            mapbox=dict(style="carto-darkmatter", center=center, zoom=zoom),
+            mapbox=dict(
+                style="carto-darkmatter",
+                center=center,
+                zoom=zoom,
+                layers=[
+                    {
+                        "below": 'traces',
+                        "sourcetype": "raster",
+                        "source": [
+                            "https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
+                        ],
+                        "opacity": 0.8
+                    }
+                ]
+            ),
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
             paper_bgcolor='darkgrey',
             font=dict(color='white', size=12),
@@ -85,6 +113,11 @@ class Map:
         """
         Adds points/density to the map (e.g., for incidences).
         """
+        # Remove any existing density points first
+        self.fig.for_each_trace(
+            lambda trace: trace.remove() if isinstance(trace, go.Densitymapbox) else None
+        )
+
         if df_state is not None and not df_state.empty:
             df_state = df_state.dropna(subset=['Latitude', 'Longitud'])
 
@@ -109,39 +142,38 @@ class Map:
             )
 
     def highlight_state(self, hovered_state: str, trace_name: str) -> None:
-        """
-        Adds a highlight boundary for a hovered or clicked state.
-        """
-        hovered_geometry = None
-        for feature in self.us_states['features']:
-            if feature['properties']['name'] == hovered_state:
-                hovered_geometry = feature['geometry']
-                break
+        """Adds a highlight boundary for hovered or clicked state(s)."""
 
-        if not hovered_geometry:
+        # Remove existing highlights with the same trace_name
+        self.fig.for_each_trace(
+            lambda trace: trace.remove() if trace.name == trace_name else None
+        )
+
+        # Handle both single state string and list of states
+        if isinstance(hovered_state, str):
+            states_to_highlight = [hovered_state]
+        elif isinstance(hovered_state, list):
+            states_to_highlight = hovered_state
+        else:
             return
 
-        geom_type = hovered_geometry['type']
-        coords_list = []
-        if geom_type == 'Polygon':
-            coords_list = [hovered_geometry['coordinates']]
-        elif geom_type == 'MultiPolygon':
-            coords_list = hovered_geometry['coordinates']
+        # Add highlight for each state
+        for state in states_to_highlight:
+            if state not in self.state_coords:
+                continue
 
-        for coords_set in coords_list:
-            # coords_set might be a list of rings
-            for coords in coords_set:
-                self.fig.add_trace(
-                    go.Scattermapbox(
-                        lon=[pt[0] for pt in coords],
-                        lat=[pt[1] for pt in coords],
-                        mode='lines',
-                        line=dict(color='lightgrey', width=1),
-                        hoverinfo='skip',
-                        opacity=0.6,
-                        name=trace_name,
-                    )
+            coords = self.state_coords[state]
+            self.fig.add_trace(
+                go.Scattermapbox(
+                    lon=[coord[0] for coord in coords],
+                    lat=[coord[1] for coord in coords],
+                    mode='lines',
+                    line=dict(color='lightgrey', width=3),
+                    hoverinfo='skip',
+                    opacity=0.8,
+                    name=trace_name,
                 )
+            )
 
         self.fig.update_layout(
             hovermode='closest',
@@ -151,8 +183,7 @@ class Map:
 
 class BarChart:
     """
-    Simple horizontal bar chart for the top-level state_count usage,
-    though you can adapt it for other horizontal bar needs.
+    Simple horizontal bar chart for the top-level state_count usage.
     """
 
     def __init__(self, state_count: pd.DataFrame) -> None:
@@ -160,34 +191,47 @@ class BarChart:
         self.bar = None
 
     def create_barchart(self) -> go.Figure:
-        self.bar = px.bar(
-            self.state_count,
-            x='crash_count',
-            y='state_name',
-            text='state_name',
-            color_discrete_sequence=['white'],
-            hover_data={'crash_count': True},
-            orientation='h'
+        # Create the bar chart using go.Figure directly instead of px
+        self.bar = go.Figure()
+
+        self.bar.add_trace(
+            go.Bar(
+                x=self.state_count['crash_count'],
+                y=self.state_count['state_name'],
+                text=self.state_count['state_name'],
+                textposition='outside',
+                orientation='h',
+                marker=dict(
+                    color='white',
+                ),
+                hovertemplate="<b>%{text}</b><br>Crashes: %{x:,}<extra></extra>",
+            )
         )
 
-        self.bar.update_traces(
-            textfont=dict(color="white"),
-            textposition='outside',
-            hovertemplate="<b>%{text}</b><br>Crashes: %{x:,}<extra></extra>",
+        self.bar.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            yaxis=dict(
+                showgrid=False,
+                showticklabels=False,
+                visible=False
+            ),
+            xaxis=dict(
+                showgrid=False,
+                showticklabels=False,
+                visible=False
+            ),
+            font=dict(
+                color="white",
+                size=14,
+                family="Helvetica"
+            ),
             hoverlabel=dict(
                 bgcolor="lightgrey",
                 bordercolor="grey",
                 font=dict(size=14, color="black", family="Helvetica")
             ),
-        )
-        self.bar.update_yaxes(visible=False, showticklabels=False)
-        self.bar.update_xaxes(visible=False, showticklabels=False)
-
-        self.bar.update_layout(
-            uirevision=True,
-            plot_bgcolor='rgba(0, 0, 0, 0)',
-            paper_bgcolor='rgba(0, 0, 0, 0)',
-            margin={"r": 0, "t": 0, "l": 0, "b": 0},
         )
 
         return self.bar
