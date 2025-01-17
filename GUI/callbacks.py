@@ -1,6 +1,8 @@
 from dash import Output, Input, State, callback_context
 import pandas as pd
 from typing import List, Dict, Any
+from GUI.alias import incident_types, weather, visibility
+import plotly.express as px
 
 # Import the plot classes you need:
 from GUI.plots import (
@@ -11,6 +13,7 @@ from GUI.plots import (
     GroupedBarChart,
     ClusteredBarChart,
     StackedBarChart,
+    DomainPlots,
 )
 
 def setup_callbacks(
@@ -26,13 +29,12 @@ def setup_callbacks(
     """
 
     def filter_by_range(df_local, selected_range):
-        """Helper function to filter data by the selected year range."""
-        if selected_range and len(selected_range) == 2 and "corrected_year" in df_local.columns:
-            return df_local[
-                (df_local["corrected_year"] >= selected_range[0])
-                & (df_local["corrected_year"] <= selected_range[1])
-            ]
-        return df_local.copy()
+        # Filter by corrected_year
+        if "corrected_year" in df_local.columns and selected_range and len(selected_range) == 2:
+            start_yr, end_yr = selected_range
+            mask = (df_local["corrected_year"] >= start_yr) & (df_local["corrected_year"] <= end_yr)
+            return df_local[mask]
+        return df_local
 
     # ------------------ Callbacks for TOP Map & Bar Chart ------------------ #
     @app.callback(
@@ -137,7 +139,6 @@ def setup_callbacks(
 
         return fig_map, bar
 
-    # ------------------ Single Dropdown for 11 Visualizations ------------------ #
     @app.callback(
         [
             Output("plot-left", "figure"),
@@ -152,9 +153,6 @@ def setup_callbacks(
         ],
     )
     def update_bottom_visual(selected_viz, selected_range, selected_states):
-        """
-        Renders the bottom visualization(s) based on the selected_viz option.
-        """
         hidden_style = {"display": "none"}
         display_style = {"display": "block"}
 
@@ -162,117 +160,331 @@ def setup_callbacks(
         fig_left, fig_right = empty_fig, empty_fig
         style_left, style_right = hidden_style, hidden_style
 
-        # 1) Filter data by year range
-        dff = filter_by_range(df, selected_range)
-        # 2) Further filter by selected states
-        if selected_states:
+        # Filter data by corrected_year range
+        dff = filter_by_range(df.copy(), selected_range)
+
+        # Filter by selected states (if any)
+        if selected_states and "state_name" in dff.columns:
             dff = dff[dff["state_name"].isin(selected_states)]
 
-        # If user hasn't picked any visualization
+        # Map TYPE codes to labels
+        if "TYPE" in dff.columns:
+            dff["TYPE"] = dff["TYPE"].astype(str)
+            dff["TYPE_LABEL"] = dff["TYPE"].map(incident_types).fillna("Unknown")
+
+        dff["WEATHER_LABEL"] = dff["WEATHER"].map(weather).fillna(dff["WEATHER"])
+        dff["VISIBLTY_LABEL"] = dff["VISIBLTY"].map(visibility).fillna(dff["VISIBLTY"])
+
         if not selected_viz:
             return fig_left, style_left, fig_right, style_right
 
-        # Prepare instances
-        scatter_instance = ScatterPlot(aliases, dff)
-        bar_instance = GroupedBarChart(aliases, dff)
-        cluster_bar = ClusteredBarChart(aliases, dff)
-        stacked_instance = StackedBarChart(aliases, dff)
-
         try:
-            # (1) Compare total accidents & hazmat cars => "CARS" vs "CARSHZD"
-            if selected_viz == "scatter_accidents_hazmat":
-                fig_left = scatter_instance.create(
-                    x_attr="CARS",    # Hazmat Cars Involved
-                    y_attr="CARSHZD", # Hazmat Cars Released
-                )
-                style_left = display_style
+            # ------------------ (1) Temporal Trends ------------------
+            if selected_viz == "plot_1_1":
+                # 1.1 Are total incidents increasing/decreasing over time?
+                if "corrected_year" in dff.columns:
+                    grouped = dff.groupby("corrected_year").size().reset_index(name="count_incidents")
+                    fig_left = px.line(
+                        grouped,
+                        x="corrected_year",
+                        y="count_incidents",
+                        title="(1.1) Total Incidents Over Time",
+                        labels={
+                            "corrected_year": "Incident Year",
+                            "count_incidents": "Incident Count",
+                        },
+                    )
+                    fig_left.update_traces(mode="lines+markers", line=dict(width=3))
+                    style_left = display_style
 
-            # (2) Compare hazmat cars damaged/derailed & released => "CARSDMG" vs "CARSHZD" w/ size
-            elif selected_viz == "scatter_hazmat_damaged_vs_released":
-                fig_left = scatter_instance.create_with_size(
-                    x_attr="CARSDMG",
-                    y_attr="CARSHZD",
-                    size_attr="CARSHZD"
-                )
-                style_left = display_style
+            elif selected_viz == "plot_1_2":
+                # 1.2 Which incident types show biggest changes over time?
+                # Use TYPE_LABEL with corrected_year
+                if "corrected_year" in dff.columns and "TYPE_LABEL" in dff.columns:
+                    grouped = (
+                        dff.groupby(["corrected_year", "TYPE_LABEL"])
+                        .size()
+                        .reset_index(name="count_incidents")
+                    )
+                    fig_left = px.line(
+                        grouped,
+                        x="corrected_year",
+                        y="count_incidents",
+                        color="TYPE_LABEL",
+                        title="(1.2) Incident Types Over Time",
+                        labels={
+                            "corrected_year": "Incident Year",
+                            "TYPE_LABEL": "Incident Type",
+                            "count_incidents": "Count",
+                        },
+                    )
+                    style_left = display_style
 
-            # (3) Compare total accidents by state => x=state_name, y=CARS
-            elif selected_viz == "compare_accidents_by_state":
-                fig_left = bar_instance.create(
-                    x_attr="state_name",
-                    y_attr="CARS",
-                )
-                style_left = display_style
+            elif selected_viz == "plot_1_3":
+                # 1.3 Seasonal patterns => group by 'IMO' (month)
+                if "IMO" in dff.columns:
+                    monthly = dff.groupby("IMO").size().reset_index(name="count_incidents")
+                    fig_left = px.bar(
+                        monthly,
+                        x="IMO",
+                        y="count_incidents",
+                        title="(1.3) Seasonal Patterns by Month",
+                        labels={
+                            "IMO": "Incident Month",
+                            "count_incidents": "Incident Count",
+                        },
+                    )
+                    style_left = display_style
 
-            # (4) Compare people injured/killed & hazmat cars => TOTINJ vs CARSDMG
-            elif selected_viz == "scatter_injured_killed_hazmat":
-                fig_left = scatter_instance.create(
-                    x_attr="TOTINJ",   # total injuries
-                    y_attr="CARSDMG", # hazmat cars damaged/derailed
-                )
-                style_left = display_style
+            # ------------------ (2) Spatial Patterns ------------------
+            elif selected_viz == "plot_2_1":
+                # 2.1 Highest geographic concentration => top 10 states
+                if "state_name" in dff.columns:
+                    top_states = dff["state_name"].value_counts().nlargest(10).reset_index()
+                    top_states.columns = ["state_name", "count"]
+                    fig_left = px.pie(
+                        top_states,
+                        names="state_name",
+                        values="count",
+                        title="(2.1) Top 10 States by Incident Count",
+                    )
+                    style_left = display_style
 
-            # (5) Compare total damage, equipment damage, track damage => stacked
-            elif selected_viz == "stacked_damage_components":
-                fig_left = stacked_instance.create(
-                    category_col="state_name",
-                    damage_cols=["ACCDMG", "EQPDMG", "TRKDMG"],
-                )
-                style_left = display_style
+            elif selected_viz == "plot_2_2":
+                # 2.2 Geographic factors => example box or bar
+                # We do a bar: x=state_name, # of incidents
+                if "state_name" in dff.columns:
+                    st_counts = dff["state_name"].value_counts().reset_index()
+                    st_counts.columns = ["state_name", "count"]
+                    fig_left = px.bar(
+                        st_counts,
+                        x="state_name",
+                        y="count",
+                        title="(2.2) Incidents by State (Placeholder)",
+                        labels={
+                            "state_name": "State",
+                            "count": "Count",
+                        },
+                    )
+                    style_left = display_style
 
-            # (6) Compare total damage & derailed loaded freight cars => ACCDMG vs LOADF2
-            elif selected_viz == "scatter_damage_freight":
-                fig_left = scatter_instance.create(
-                    x_attr="ACCDMG",
-                    y_attr="LOADF2",
-                )
-                style_left = display_style
+            elif selected_viz == "plot_2_3":
+                # 2.3 Distribution differences => box x=TYPE_LABEL, y=ACCDMG
+                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
+                    fig_left = px.box(
+                        dff,
+                        x="TYPE_LABEL",
+                        y="ACCDMG",
+                        title="(2.3) Damage Distribution by Incident Type",
+                        labels={
+                            "TYPE_LABEL": "Incident Type",
+                            "ACCDMG": "Total Damage Cost",
+                        },
+                    )
+                    style_left = display_style
 
-            # (7) Compare accidents & positive/negative drug tests => x=DRUG, y=CARS
-            elif selected_viz == "stacked_drug_tests":
-                fig_left = cluster_bar.create(
-                    x_attr="DRUG",
-                    y_attr="CARS",
-                )
-                style_left = display_style
+            # ------------------ (3) Contributing Factors ------------------
+            elif selected_viz == "plot_3_1":
+                # 3.1 speed, weather, track => scatter x=TRNSPD, y=ACCDMG, color=WEATHER_LABEL
+                needed = ["TRNSPD", "ACCDMG", "WEATHER_LABEL"]
+                if all(col in dff.columns for col in needed):
+                    fig_left = px.scatter(
+                        dff,
+                        x="TRNSPD",
+                        y="ACCDMG",
+                        color="WEATHER_LABEL",
+                        title="(3.1) Speed vs. Damage (color=Weather)",
+                        labels={
+                            "TRNSPD": "Train Speed (mph)",
+                            "ACCDMG": "Total Damage Cost",
+                            "WEATHER_LABEL": "Weather Condition",
+                        },
+                    )
+                    style_left = display_style
 
-            # (8) Compare total accidents & train speed => x=TRNSPD, y=CARS
-            elif selected_viz == "scatter_accidents_speed":
-                fig_left = scatter_instance.create(
-                    x_attr="TRNSPD",
-                    y_attr="CARS",
-                )
-                style_left = display_style
+            elif selected_viz == "plot_3_2":
+                # 3.2 How do factors affect severity => box x=WEATHER_LABEL, y=TOTINJ
+                if "WEATHER_LABEL" in dff.columns and "TOTINJ" in dff.columns:
+                    fig_left = px.box(
+                        dff,
+                        x="WEATHER_LABEL",
+                        y="TOTINJ",
+                        title="(3.2) Weather vs. Injuries",
+                        labels={
+                            "WEATHER_LABEL": "Weather Condition",
+                            "TOTINJ": "Total Injuries",
+                        },
+                    )
+                    style_left = display_style
 
-            # (9) Compare people injured/killed & derailed loaded passenger cars => TOTINJ vs LOADP2
-            elif selected_viz == "scatter_injured_passenger":
-                fig_left = scatter_instance.create(
-                    x_attr="TOTINJ",
-                    y_attr="LOADP2",
-                )
-                style_left = display_style
+            elif selected_viz == "plot_3_3":
+                # 3.3 factor combos => stacked bar of CAUSE x [CARS, TOTINJ]
+                needed = ["CAUSE", "CARS", "TOTINJ"]
+                if all(n in dff.columns for n in needed):
+                    melted = dff.melt(
+                        id_vars=["CAUSE"],
+                        value_vars=["CARS", "TOTINJ"],
+                        var_name="Factor",
+                        value_name="Value"
+                    )
+                    fig_left = px.bar(
+                        melted,
+                        x="CAUSE",
+                        y="Value",
+                        color="Factor",
+                        barmode="stack",
+                        title="(3.3) Factor Combos by Cause",
+                    )
+                    style_left = display_style
 
-            # (10) Compare brakemen on duty vs. derailed freight => x=BRAKEMEN, y=LOADF2
-            elif selected_viz == "clustered_brakemen_freight":
-                fig_left = cluster_bar.create(
-                    x_attr="BRAKEMEN",
-                    y_attr="LOADF2",
-                )
-                style_left = display_style
+            # ------------------ (4) Operator Performance ------------------
+            elif selected_viz == "plot_4_1":
+                # 4.1 Compare overall incident rates across operators => RAILROAD
+                if "RAILROAD" in dff.columns:
+                    rr_counts = dff["RAILROAD"].value_counts().nlargest(10).reset_index()
+                    rr_counts.columns = ["RAILROAD", "count"]
+                    fig_left = px.bar(
+                        rr_counts,
+                        x="RAILROAD",
+                        y="count",
+                        title="(4.1) Top 10 Railroads by Incident Count",
+                        labels={
+                            "RAILROAD": "Reporting Railroad Code",
+                            "count": "Count",
+                        },
+                    )
+                    style_left = display_style
 
-            # (11) Compare total damage & loaded passenger cars => x=ACCDMG, y=LOADP1
-            elif selected_viz == "scatter_damage_passenger":
-                fig_left = scatter_instance.create(
-                    x_attr="ACCDMG",
-                    y_attr="LOADP1",
-                )
-                style_left = display_style
+            elif selected_viz == "plot_4_2":
+                # 4.2 Differences in incident types by operator => grouped bar
+                if "RAILROAD" in dff.columns and "TYPE_LABEL" in dff.columns:
+                    grouped = (
+                        dff.groupby(["RAILROAD", "TYPE_LABEL"])
+                        .size()
+                        .reset_index(name="count")
+                    )
+                    fig_left = px.bar(
+                        grouped,
+                        x="RAILROAD",
+                        y="count",
+                        color="TYPE_LABEL",
+                        barmode="group",
+                        title="(4.2) Incident Types by Railroad",
+                        labels={
+                            "RAILROAD": "Reporting Railroad Code",
+                            "TYPE_LABEL": "Incident Type",
+                            "count": "Count",
+                        },
+                    )
+                    style_left = display_style
 
-            # If none matched
-            else:
-                pass
+            elif selected_viz == "plot_4_3":
+                # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
+                if "RAILROAD" in dff.columns and "ACCDMG" in dff.columns:
+                    fig_left = px.box(
+                        dff,
+                        x="RAILROAD",
+                        y="ACCDMG",
+                        title="(4.3) Damage by Railroad",
+                        labels={
+                            "RAILROAD": "Reporting Railroad Code",
+                            "ACCDMG": "Total Damage Cost",
+                        },
+                    )
+                    style_left = display_style
+
+            # ------------------ (5) High-Impact Incidents ------------------
+            elif selected_viz == "plot_5_1":
+                # 5.1 Primary & secondary causes => group by (CAUSE, CAUSE2)
+                if "CAUSE" in dff.columns and "CAUSE2" in dff.columns:
+                    grouped = dff.groupby(["CAUSE", "CAUSE2"]).size().reset_index(name="count")
+                    fig_left = px.bar(
+                        grouped,
+                        x="CAUSE",
+                        y="count",
+                        color="CAUSE2",
+                        barmode="group",
+                        title="(5.1) Primary vs. Secondary Causes",
+                    )
+                    style_left = display_style
+
+            elif selected_viz == "plot_5_2":
+                # 5.2 Common circumstances in severe incidents => if ACCDMG>100000
+                if "ACCDMG" in dff.columns and "TYPE_LABEL" in dff.columns:
+                    severe = dff[dff["ACCDMG"] > 100000]
+                    if severe.empty:
+                        severe = dff
+                    type_counts = severe["TYPE_LABEL"].value_counts().nlargest(5).reset_index()
+                    type_counts.columns = ["TYPE_LABEL", "count"]
+                    fig_left = px.pie(
+                        type_counts,
+                        names="TYPE_LABEL",
+                        values="count",
+                        title="(5.2) Common Incident Types in Severe Incidents",
+                    )
+                    style_left = display_style
+
+            elif selected_viz == "plot_5_3":
+                # 5.3 Preventable factors => e.g. ACCAUSE
+                if "ACCAUSE" in dff.columns:
+                    factor_counts = dff["ACCAUSE"].value_counts().nlargest(10).reset_index()
+                    factor_counts.columns = ["ACCAUSE", "count"]
+                    fig_left = px.bar(
+                        factor_counts,
+                        x="ACCAUSE",
+                        y="count",
+                        title="(5.3) Preventable Factors in High-Impact Incidents",
+                    )
+                    style_left = display_style
+
+            # ------------------ (6) Summarizing Incident Characteristics ------------------
+            elif selected_viz == "plot_6_1":
+                # 6.1 Most common types => TYPE_LABEL
+                if "TYPE_LABEL" in dff.columns:
+                    type_counts = dff["TYPE_LABEL"].value_counts().nlargest(10).reset_index()
+                    type_counts.columns = ["TYPE_LABEL", "count"]
+                    fig_left = px.bar(
+                        type_counts,
+                        x="TYPE_LABEL",
+                        y="count",
+                        title="(6.1) Most Common Incident Types",
+                        labels={
+                            "TYPE_LABEL": "Incident Type",
+                            "count": "Count",
+                        },
+                    )
+                    style_left = display_style
+
+            elif selected_viz == "plot_6_2":
+                # 6.2 Most frequently cited primary causes => CAUSE
+                if "CAUSE" in dff.columns:
+                    cause_counts = dff["CAUSE"].value_counts().nlargest(10).reset_index()
+                    cause_counts.columns = ["CAUSE", "count"]
+                    fig_left = px.bar(
+                        cause_counts,
+                        x="CAUSE",
+                        y="count",
+                        title="(6.2) Most Frequent Primary Causes",
+                    )
+                    style_left = display_style
+
+            elif selected_viz == "plot_6_3":
+                # 6.3 Avg damage cost among different incident types => box x=TYPE_LABEL, y=ACCDMG
+                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
+                    fig_left = px.box(
+                        dff,
+                        x="TYPE_LABEL",
+                        y="ACCDMG",
+                        title="(6.3) Avg Damage by Incident Type",
+                        labels={
+                            "TYPE_LABEL": "Incident Type",
+                            "ACCDMG": "Damage Cost",
+                        },
+                    )
+                    style_left = display_style
 
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
 
         return fig_left, style_left, fig_right, style_right
+

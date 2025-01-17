@@ -562,9 +562,441 @@ class PieChart:
             legend=dict(font=dict(color='white'), bgcolor='rgba(0,0,0,0)')
         )
         return fig
+class DomainPlots:
+    """
+    A class with 18 methods, each returning a Plotly figure for a specific
+    domain question (1.1 through 6.3). We rely on:
 
-#
-# If you want a TreemapPlot, you can add it similarly:
-#
-# class TreemapPlot:
-#     ...
+      - 'corrected_year' instead of YEAR
+      - 'IMO' for month
+      - 'aliases' dict for labeling
+      - typical columns like 'TYPE', 'CAUSE', 'CAUSE2', 'RAILROAD', 'ACCDMG', 'TOTINJ', 'CARS', etc.
+      - 'state_name' for state-level analysis (if available)
+    """
+
+    def __init__(self, df: pd.DataFrame, aliases: Dict[str, str]):
+        self.df = df.copy()
+        self.aliases = aliases
+
+    # --------------- (1) Analyzing Temporal Trends ---------------
+    def plot_1_1_incidents_over_time(self) -> go.Figure:
+        """
+        1.1: Are total incidents increasing/decreasing over time?
+        => line chart grouped by corrected_year
+        """
+        if "corrected_year" not in self.df.columns:
+            return go.Figure()
+
+        grouped = (
+            self.df.groupby("corrected_year")
+            .size()
+            .reset_index(name="count_incidents")
+        )
+        fig = px.line(
+            grouped,
+            x="corrected_year",
+            y="count_incidents",
+            title="1.1 Total Incidents Over Time",
+            labels={
+                "corrected_year": self.aliases.get("corrected_year", "Year"),
+                "count_incidents": "Incident Count",
+            },
+        )
+        fig.update_traces(mode="lines+markers", line=dict(width=3))
+        return fig
+
+    def plot_1_2_types_biggest_changes(self) -> go.Figure:
+        """
+        1.2: Which incident types show biggest changes over time?
+        => multi-line chart by (corrected_year, TYPE)
+        """
+        if "corrected_year" not in self.df.columns or "TYPE" not in self.df.columns:
+            return go.Figure()
+
+        grouped = (
+            self.df.groupby(["corrected_year", "TYPE"])
+            .size()
+            .reset_index(name="count_incidents")
+        )
+        fig = px.line(
+            grouped,
+            x="corrected_year",
+            y="count_incidents",
+            color="TYPE",
+            title="1.2 Incident Types Over Time",
+            labels={
+                "corrected_year": self.aliases.get("corrected_year", "Year"),
+                "TYPE": self.aliases.get("TYPE", "Type"),
+                "count_incidents": "Incident Count",
+            },
+        )
+        return fig
+
+    def plot_1_3_seasonal_patterns(self) -> go.Figure:
+        """
+        1.3: Any noticeable seasonal patterns?
+        => bar chart grouped by month 'IMO'
+        """
+        if "IMO" not in self.df.columns:
+            return go.Figure()
+
+        grouped = self.df.groupby("IMO").size().reset_index(name="count_incidents")
+        fig = px.bar(
+            grouped,
+            x="IMO",
+            y="count_incidents",
+            title="1.3 Seasonal Patterns by Month (IMO)",
+            labels={
+                "IMO": self.aliases.get("IMO", "Month"),
+                "count_incidents": "Incident Count",
+            },
+        )
+        return fig
+
+    # --------------- (2) Spatial Patterns ---------------
+    def plot_2_1_highest_geo_concentration(self) -> go.Figure:
+        """
+        2.1: Highest geographic concentration of incidents?
+        => top 10 states (state_name) in a pie or bar
+        """
+        if "state_name" not in self.df.columns:
+            return go.Figure()
+
+        top_states = self.df["state_name"].value_counts().nlargest(10).reset_index()
+        top_states.columns = ["state_name", "count"]
+        fig = px.pie(
+            top_states,
+            names="state_name",
+            values="count",
+            title="2.1 Top 10 States by Incident Count",
+        )
+        return fig
+
+    def plot_2_2_geo_factors_vs_incident_rates(self) -> go.Figure:
+        """
+        2.2: Geographic factors (urban, mountains) vs. incident rates?
+        If you have columns for that, use them.
+        Otherwise, as a placeholder, let's do a bar of 'state_name' if we have it.
+        """
+        if "state_name" not in self.df.columns:
+            return go.Figure()
+
+        # just do a bar of total incidents by state_name
+        grouped = self.df["state_name"].value_counts().reset_index()
+        grouped.columns = ["state_name", "count"]
+        fig = px.bar(
+            grouped,
+            x="state_name",
+            y="count",
+            title="2.2 (Placeholder) Incidents by State",
+            labels={
+                "state_name": "State",
+                "count": "Incident Count",
+            },
+        )
+        return fig
+
+    def plot_2_3_distribution_diff_incident_types(self) -> go.Figure:
+        """
+        2.3: Distribution differences for various incident types
+        => e.g. box plot x=TYPE, y=ACCDMG
+        """
+        if "TYPE" not in self.df.columns or "ACCDMG" not in self.df.columns:
+            return go.Figure()
+
+        fig = px.box(
+            self.df,
+            x="TYPE",
+            y="ACCDMG",
+            title="2.3 Damage Distribution by Incident Type",
+            labels={
+                "TYPE": self.aliases.get("TYPE", "Type"),
+                "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
+            },
+        )
+        return fig
+
+    # --------------- (3) Contributing Factors ---------------
+    def plot_3_1_factors_correlate_strongly(self) -> go.Figure:
+        """
+        3.1: Which factors (speed, weather, track) correlate strongly?
+        => scatter x=TRNSPD, y=ACCDMG, color=WEATHER (if exist)
+        """
+        needed = ["TRNSPD", "ACCDMG", "WEATHER"]
+        if not all(n in self.df.columns for n in needed):
+            return go.Figure()
+
+        fig = px.scatter(
+            self.df,
+            x="TRNSPD",
+            y="ACCDMG",
+            color="WEATHER",
+            title="3.1 Speed vs. Damage, colored by Weather",
+            labels={
+                "TRNSPD": self.aliases.get("TRNSPD", "Train Speed"),
+                "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
+                "WEATHER": self.aliases.get("WEATHER", "Weather"),
+            },
+        )
+        return fig
+
+    def plot_3_2_factors_affect_severity(self) -> go.Figure:
+        """
+        3.2: How do these factors affect severity (damage, injuries)?
+        => box: x=WEATHER, y=TOTINJ
+        """
+        needed = ["WEATHER", "TOTINJ"]
+        if not all(n in self.df.columns for n in needed):
+            return go.Figure()
+
+        fig = px.box(
+            self.df,
+            x="WEATHER",
+            y="TOTINJ",
+            title="3.2 Weather vs. Total Injuries",
+            labels={
+                "WEATHER": self.aliases.get("WEATHER", "Weather"),
+                "TOTINJ": self.aliases.get("TOTINJ", "Total Injuries"),
+            },
+        )
+        return fig
+
+    def plot_3_3_factor_combos(self) -> go.Figure:
+        """
+        3.3: Specific factor combos that precede incidents?
+        => stacked bar: CAUSE x [CARS, TOTINJ]
+        """
+        needed = ["CAUSE", "CARS", "TOTINJ"]
+        for col in needed:
+            if col not in self.df.columns:
+                return go.Figure()
+
+        melted = self.df.melt(
+            id_vars=["CAUSE"],
+            value_vars=["CARS", "TOTINJ"],
+            var_name="Factor",
+            value_name="Value"
+        )
+        fig = px.bar(
+            melted,
+            x="CAUSE",
+            y="Value",
+            color="Factor",
+            barmode="stack",
+            title="3.3 Factor Combos by Cause",
+            labels={
+                "CAUSE": "Cause",
+                "Value": "Count/Value",
+            },
+        )
+        return fig
+
+    # --------------- (4) Operator Performance ---------------
+    def plot_4_1_incident_rates_across_operators(self) -> go.Figure:
+        """
+        4.1: Compare overall incident rates across operators => RAILROAD
+        => bar top 10
+        """
+        if "RAILROAD" not in self.df.columns:
+            return go.Figure()
+
+        rr_counts = self.df["RAILROAD"].value_counts().nlargest(10).reset_index()
+        rr_counts.columns = ["RAILROAD", "count"]
+        fig = px.bar(
+            rr_counts,
+            x="RAILROAD",
+            y="count",
+            title="4.1 Top 10 Railroads by Incident Count",
+            labels={
+                "RAILROAD": self.aliases.get("RAILROAD", "Operator"),
+                "count": "Incident Count",
+            },
+        )
+        return fig
+
+    def plot_4_2_differences_incident_types_by_operator(self) -> go.Figure:
+        """
+        4.2: Differences in incident types by operator => grouped bar
+        => group by (RAILROAD, TYPE)
+        """
+        needed = ["RAILROAD", "TYPE"]
+        if not all(n in self.df.columns for n in needed):
+            return go.Figure()
+
+        grouped = (
+            self.df.groupby(["RAILROAD", "TYPE"])
+            .size()
+            .reset_index(name="count")
+        )
+        fig = px.bar(
+            grouped,
+            x="RAILROAD",
+            y="count",
+            color="TYPE",
+            barmode="group",
+            title="4.2 Incident Types by Railroad",
+            labels={
+                "RAILROAD": self.aliases.get("RAILROAD", "Operator"),
+                "TYPE": self.aliases.get("TYPE", "Incident Type"),
+                "count": "Count",
+            },
+        )
+        return fig
+
+    def plot_4_3_operator_higher_lower_specific_incidents(self) -> go.Figure:
+        """
+        4.3: Which operator is higher/lower for specific incidents?
+        => box: x=RAILROAD, y=ACCDMG
+        """
+        needed = ["RAILROAD", "ACCDMG"]
+        if not all(n in self.df.columns for n in needed):
+            return go.Figure()
+
+        fig = px.box(
+            self.df,
+            x="RAILROAD",
+            y="ACCDMG",
+            title="4.3 Damage by Railroad",
+            labels={
+                "RAILROAD": self.aliases.get("RAILROAD", "Operator"),
+                "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
+            },
+        )
+        return fig
+
+    # --------------- (5) High-Impact Incidents ---------------
+    def plot_5_1_primary_secondary_causes(self) -> go.Figure:
+        """
+        5.1: Primary & secondary causes of high-impact incidents
+        => group by (CAUSE, CAUSE2)
+        """
+        needed = ["CAUSE", "CAUSE2"]
+        if not all(n in self.df.columns for n in needed):
+            return go.Figure()
+
+        grouped = self.df.groupby(["CAUSE", "CAUSE2"]).size().reset_index(name="count")
+        fig = px.bar(
+            grouped,
+            x="CAUSE",
+            y="count",
+            color="CAUSE2",
+            barmode="group",
+            title="5.1 Primary vs. Secondary Causes",
+            labels={
+                "CAUSE": "Primary Cause",
+                "CAUSE2": "Secondary Cause",
+                "count": "Count",
+            },
+        )
+        return fig
+
+    def plot_5_2_common_circumstances_severe_incidents(self) -> go.Figure:
+        """
+        5.2: Common circumstances in severe incidents?
+        => define severe as ACCDMG>100000 (arbitrary), then do a pie of TYPE
+        """
+        if "ACCDMG" not in self.df.columns or "TYPE" not in self.df.columns:
+            return go.Figure()
+
+        severe = self.df[self.df["ACCDMG"] > 100000]
+        if severe.empty:
+            # fallback if no severe found
+            severe = self.df
+        counts = severe["TYPE"].value_counts().nlargest(5).reset_index()
+        counts.columns = ["TYPE", "count"]
+        fig = px.pie(
+            counts,
+            names="TYPE",
+            values="count",
+            title="5.2 Common Incident Types in Severe Incidents",
+            labels={
+                "TYPE": self.aliases.get("TYPE", "Incident Type"),
+                "count": "Count",
+            },
+        )
+        return fig
+
+    def plot_5_3_preventable_factors(self) -> go.Figure:
+        """
+        5.3: Preventable factors in high-impact incidents?
+        => if we have 'ACCAUSE' column, bar of top 10
+        """
+        if "ACCAUSE" not in self.df.columns:
+            return go.Figure()
+
+        factor_counts = self.df["ACCAUSE"].value_counts().nlargest(10).reset_index()
+        factor_counts.columns = ["ACCAUSE", "count"]
+        fig = px.bar(
+            factor_counts,
+            x="ACCAUSE",
+            y="count",
+            title="5.3 Preventable Factors in High-Impact Incidents",
+            labels={
+                "ACCAUSE": "Accident Cause",
+                "count": "Count",
+            },
+        )
+        return fig
+
+    # --------------- (6) Summarizing Incident Characteristics ---------------
+    def plot_6_1_most_common_incident_types(self) -> go.Figure:
+        """
+        6.1: Most common types of railroad incidents => TYPE (top 10)
+        """
+        if "TYPE" not in self.df.columns:
+            return go.Figure()
+
+        type_counts = self.df["TYPE"].value_counts().nlargest(10).reset_index()
+        type_counts.columns = ["TYPE", "count"]
+        fig = px.bar(
+            type_counts,
+            x="TYPE",
+            y="count",
+            title="6.1 Most Common Incident Types",
+            labels={
+                "TYPE": self.aliases.get("TYPE", "Incident Type"),
+                "count": "Count",
+            },
+        )
+        return fig
+
+    def plot_6_2_most_frequent_primary_causes(self) -> go.Figure:
+        """
+        6.2: Most frequently cited primary causes => CAUSE
+        """
+        if "CAUSE" not in self.df.columns:
+            return go.Figure()
+
+        cause_counts = self.df["CAUSE"].value_counts().nlargest(10).reset_index()
+        cause_counts.columns = ["CAUSE", "count"]
+        fig = px.bar(
+            cause_counts,
+            x="CAUSE",
+            y="count",
+            title="6.2 Most Frequently Cited Primary Causes",
+            labels={
+                "CAUSE": "Primary Cause",
+                "count": "Count",
+            },
+        )
+        return fig
+
+    def plot_6_3_avg_damage_by_incident_types(self) -> go.Figure:
+        """
+        6.3: Avg damage cost among different incident types => box x=TYPE, y=ACCDMG
+        """
+        needed = ["TYPE", "ACCDMG"]
+        if not all(n in self.df.columns for n in needed):
+            return go.Figure()
+
+        fig = px.box(
+            self.df,
+            x="TYPE",
+            y="ACCDMG",
+            title="6.3 Avg Damage by Incident Type",
+            labels={
+                "TYPE": self.aliases.get("TYPE", "Incident Type"),
+                "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
+            },
+        )
+        return fig
