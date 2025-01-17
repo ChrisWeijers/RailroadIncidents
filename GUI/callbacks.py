@@ -3,6 +3,7 @@ import pandas as pd
 from typing import List, Dict, Any
 from GUI.alias import incident_types, weather, visibility
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Import the plot classes you need:
 from GUI.plots import (
@@ -167,10 +168,8 @@ def setup_callbacks(
         if selected_states and "state_name" in dff.columns:
             dff = dff[dff["state_name"].isin(selected_states)]
 
-        # Map TYPE codes to labels
-        if "TYPE" in dff.columns:
-            dff["TYPE"] = dff["TYPE"].astype(str)
-            dff["TYPE_LABEL"] = dff["TYPE"].map(incident_types).fillna("Unknown")
+        dff["TYPE"] = dff["TYPE"].astype(int, errors='ignore')
+        dff["TYPE_LABEL"] = dff["TYPE"].map(incident_types)
 
         dff["WEATHER_LABEL"] = dff["WEATHER"].map(weather).fillna(dff["WEATHER"])
         dff["VISIBLTY_LABEL"] = dff["VISIBLTY"].map(visibility).fillna(dff["VISIBLTY"])
@@ -183,10 +182,10 @@ def setup_callbacks(
             if selected_viz == "plot_1_1":
                 # 1.1 Are total incidents increasing/decreasing over time?
                 if "corrected_year" in dff.columns:
-                    grouped = dff.groupby("corrected_year").size().reset_index(name="count_incidents")
+                    grouped = dff.groupby("DATE_M").size().reset_index(name="count_incidents")
                     fig_left = px.line(
                         grouped,
-                        x="corrected_year",
+                        x="DATE_M",
                         y="count_incidents",
                         title="(1.1) Total Incidents Over Time",
                         labels={
@@ -195,6 +194,11 @@ def setup_callbacks(
                         },
                     )
                     fig_left.update_traces(mode="lines+markers", line=dict(width=3))
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
             elif selected_viz == "plot_1_2":
@@ -218,6 +222,11 @@ def setup_callbacks(
                             "count_incidents": "Count",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
             elif selected_viz == "plot_1_3":
@@ -234,21 +243,56 @@ def setup_callbacks(
                             "count_incidents": "Incident Count",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
             # ------------------ (2) Spatial Patterns ------------------
             elif selected_viz == "plot_2_1":
-                # 2.1 Highest geographic concentration => top 10 states
-                if "state_name" in dff.columns:
-                    top_states = dff["state_name"].value_counts().nlargest(10).reset_index()
-                    top_states.columns = ["state_name", "count"]
-                    fig_left = px.pie(
-                        top_states,
-                        names="state_name",
-                        values="count",
-                        title="(2.1) Top 10 States by Incident Count",
+                if "state_name" in dff.columns and "TYPE_LABEL" in dff.columns:
+                    top_states = (
+                        dff["state_name"]
+                        .value_counts()
+                        .nlargest(10)
+                        .reset_index()
+                        .rename(columns={"index": "state_name", "state_name": "count"})
                     )
+
+                    # Ensure columns are named correctly
+                    top_states.columns = ["state_name", "count"]
+
+                    # Filter data for these top states
+                    dff_top_states = dff[dff["state_name"].isin(top_states["state_name"])]
+
+                    # Prepare data for the sunburst chart
+                    grouped = (
+                        dff_top_states.groupby(["state_name", "TYPE_LABEL"])
+                        .size()
+                        .reset_index(name="count")
+                    )
+
+                    # Create a sunburst chart
+                    fig_left = px.sunburst(
+                        grouped,
+                        path=["state_name", "TYPE_LABEL"],  # Hierarchical path
+                        values="count",
+                        title="(2.1) Top 10 States by Incident Count and Type",
+                        color="count",
+                        color_continuous_scale="Blues",
+                    )
+
+                    # Update layout for better aesthetics
+                    fig_left.update_layout(
+                        margin=dict(t=30, l=0, r=0, b=0),
+                        font=dict(size=14, color="white"),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                    )
+
                     style_left = display_style
+
 
             elif selected_viz == "plot_2_2":
                 # 2.2 Geographic factors => example box or bar
@@ -266,6 +310,11 @@ def setup_callbacks(
                             "count": "Count",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
             elif selected_viz == "plot_2_3":
@@ -280,6 +329,11 @@ def setup_callbacks(
                             "TYPE_LABEL": "Incident Type",
                             "ACCDMG": "Total Damage Cost",
                         },
+                    )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
                     )
                     style_left = display_style
 
@@ -300,6 +354,11 @@ def setup_callbacks(
                             "WEATHER_LABEL": "Weather Condition",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
             elif selected_viz == "plot_3_2":
@@ -315,27 +374,51 @@ def setup_callbacks(
                             "TOTINJ": "Total Injuries",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
+
             elif selected_viz == "plot_3_3":
-                # 3.3 factor combos => stacked bar of CAUSE x [CARS, TOTINJ]
+
+                # 3.3 factor combos => stacked bar of CAUSE_CATEGORY x [CARS, TOTINJ]
+
                 needed = ["CAUSE", "CARS", "TOTINJ"]
+
                 if all(n in dff.columns for n in needed):
-                    melted = dff.melt(
-                        id_vars=["CAUSE"],
+                    dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
+                    grouped = dff.groupby("CAUSE_CATEGORY")[["CARS", "TOTINJ"]].sum().reset_index()
+                    melted = grouped.melt(
+                        id_vars=["CAUSE_CATEGORY"],
                         value_vars=["CARS", "TOTINJ"],
                         var_name="Factor",
-                        value_name="Value"
+                        value_name="Value",
                     )
+
                     fig_left = px.bar(
                         melted,
-                        x="CAUSE",
+                        x="CAUSE_CATEGORY",
                         y="Value",
                         color="Factor",
                         barmode="stack",
-                        title="(3.3) Factor Combos by Cause",
+                        title="(3.3) Factor Combos by Cause Category",
+                        labels={
+                            "CAUSE_CATEGORY": "Cause Category",
+                            "Value": "Total Count",
+                            "Factor": "Factor Type",
+                        },
+                    )
+                    # Update layout for appearance
+                    fig_left.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
                     )
                     style_left = display_style
+
 
             # ------------------ (4) Operator Performance ------------------
             elif selected_viz == "plot_4_1":
@@ -352,6 +435,11 @@ def setup_callbacks(
                             "RAILROAD": "Reporting Railroad Code",
                             "count": "Count",
                         },
+                    )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
                     )
                     style_left = display_style
 
@@ -376,6 +464,11 @@ def setup_callbacks(
                             "count": "Count",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
                     style_left = display_style
 
             elif selected_viz == "plot_4_3":
@@ -390,6 +483,11 @@ def setup_callbacks(
                             "RAILROAD": "Reporting Railroad Code",
                             "ACCDMG": "Total Damage Cost",
                         },
+                    )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
                     )
                     style_left = display_style
 
@@ -425,48 +523,88 @@ def setup_callbacks(
                     style_left = display_style
 
             elif selected_viz == "plot_5_3":
-                # 5.3 Preventable factors => e.g. ACCAUSE
+                # 5.3 Preventable factors => grouped by ACCAUSE categories
                 if "ACCAUSE" in dff.columns:
-                    factor_counts = dff["ACCAUSE"].value_counts().nlargest(10).reset_index()
-                    factor_counts.columns = ["ACCAUSE", "count"]
+                    # Map ACCAUSE to its categories
+                    dff["ACCAUSE_CATEGORY"] = dff["ACCAUSE"].map(cause_category_mapping).fillna("Unknown")
+                    # Summarize data by ACCAUSE_CATEGORY
+                    category_counts = dff["ACCAUSE_CATEGORY"].value_counts().reset_index()
+                    category_counts.columns = ["Cause Category", "Count"]
+                    # Create bar chart
                     fig_left = px.bar(
-                        factor_counts,
-                        x="ACCAUSE",
-                        y="count",
-                        title="(5.3) Preventable Factors in High-Impact Incidents",
+                        category_counts,
+                        x="Cause Category",
+                        y="Count",
+                        title="(5.3) Preventable Factors in High-Impact Incidents (Grouped by Categories)",
+                        labels={
+                            "Cause Category": "Cause Category",
+                            "Count": "Incident Count",
+                        },
+                    )
+                    # Update layout for better appearance
+                    fig_left.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
                     )
                     style_left = display_style
 
             # ------------------ (6) Summarizing Incident Characteristics ------------------
             elif selected_viz == "plot_6_1":
                 # 6.1 Most common types => TYPE_LABEL
-                if "TYPE_LABEL" in dff.columns:
-                    type_counts = dff["TYPE_LABEL"].value_counts().nlargest(10).reset_index()
-                    type_counts.columns = ["TYPE_LABEL", "count"]
+                if "TYPE_LABEL" in dff.columns and "state_name" in dff.columns:
+                    # Group data by TYPE_LABEL and state_name, then calculate counts
+                    type_state_counts = (
+                        dff.groupby(["TYPE_LABEL", "state_name"])
+                        .size()
+                        .reset_index(name="count")
+                    )
+
+                    # Filter to include only the top 10 most common incident types
+                    top_types = type_state_counts.groupby("TYPE_LABEL")["count"].sum().nlargest(10).index
+                    type_state_counts = type_state_counts[type_state_counts["TYPE_LABEL"].isin(top_types)]
+
+                    # Create a stacked bar chart
                     fig_left = px.bar(
-                        type_counts,
+                        type_state_counts,
                         x="TYPE_LABEL",
                         y="count",
-                        title="(6.1) Most Common Incident Types",
+                        color="state_name",  # Use state_name to create the stacked effect
+                        title="(6.1) Most Common Incident Types by State",
                         labels={
                             "TYPE_LABEL": "Incident Type",
                             "count": "Count",
+                            "state_name": "State",
+                        },
+                    )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    )
+                    style_left = display_style
+
+
+            elif selected_viz == "plot_6_2":
+
+                # 6.2 Most frequently cited primary causes => grouped by CAUSE categories
+                if "CAUSE" in dff.columns:
+                    # Map CAUSE to its categories
+                    dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
+                    category_counts = dff["CAUSE_CATEGORY"].value_counts().nlargest(10).reset_index()
+                    category_counts.columns = ["Cause Category", "Count"]
+                    fig_left = px.bar(
+                        category_counts,
+                        x="Cause Category",
+                        y="Count",
+                        title="(6.2) Most Frequent Primary Causes (Grouped by Categories)",
+                        labels={
+                            "Cause Category": "Cause Category",
+                            "Count": "Incident Count",
                         },
                     )
                     style_left = display_style
 
-            elif selected_viz == "plot_6_2":
-                # 6.2 Most frequently cited primary causes => CAUSE
-                if "CAUSE" in dff.columns:
-                    cause_counts = dff["CAUSE"].value_counts().nlargest(10).reset_index()
-                    cause_counts.columns = ["CAUSE", "count"]
-                    fig_left = px.bar(
-                        cause_counts,
-                        x="CAUSE",
-                        y="count",
-                        title="(6.2) Most Frequent Primary Causes",
-                    )
-                    style_left = display_style
 
             elif selected_viz == "plot_6_3":
                 # 6.3 Avg damage cost among different incident types => box x=TYPE_LABEL, y=ACCDMG
@@ -480,6 +618,11 @@ def setup_callbacks(
                             "TYPE_LABEL": "Incident Type",
                             "ACCDMG": "Damage Cost",
                         },
+                    )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
                     )
                     style_left = display_style
 

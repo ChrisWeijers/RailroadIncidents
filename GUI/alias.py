@@ -111,19 +111,19 @@ COMPATIBLE_TYPES: Dict[str, List[str]] = {
 
 
 incident_types: Dict[str, str] = {
-    '01': 'Derailment',
-    '02': 'Head on collision',
-    '03': 'Rearend collision',
-    '04': 'Side collision',
-    '05': 'Raking collision',
-    '06': 'Broken train collision',
-    '07': 'Hwy-rail crossing',
-    '08': 'RR Grade Crossing',
-    '09': 'Obstruction',
-    '10': 'Explosive-detonation',
-    '11': 'Fire/Violent rupture',
-    '12': 'Other impacts',
-    '13': 'Other (described in narration)'
+    1: 'Derailment',
+    2: 'Head on collision',
+    3: 'Rearend collision',
+    4: 'Side collision',
+    5: 'Raking collision',
+    6: 'Broken train collision',
+    7: 'Hwy-rail crossing',
+    8: 'RR Grade Crossing',
+    9: 'Obstruction',
+    10: 'Explosive-detonation',
+    11: 'Fire/Violent rupture',
+    12: 'Other impacts',
+    13: 'Other (described in narration)'
 }
 
 visibility: Dict[int, str] = {
@@ -588,3 +588,18 @@ fra_cause_codes = {
         },
     }
 }
+
+# Flatten fra_cause_codes to map detailed codes to their categories
+def generate_cause_category_mapping(fra_cause_codes):
+    cause_category_mapping = {}
+    for main_category, subcategories in fra_cause_codes.items():
+        for subcategory, causes in subcategories.items():
+            if isinstance(causes, dict):  # For nested structures
+                for code, _ in causes.items():
+                    cause_category_mapping[code] = subcategory
+            else:  # Handle any unexpected structure
+                cause_category_mapping[subcategory] = main_category
+    return cause_category_mapping
+
+# Generate the mapping
+cause_category_mapping = generate_cause_category_mapping(fra_cause_codes)

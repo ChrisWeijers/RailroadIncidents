@@ -20,11 +20,11 @@ class Map:
     """
 
     def __init__(
-        self,
-        df: pd.DataFrame,
-        us_states: Dict[str, Any],
-        state_count: pd.DataFrame,
-        manual_zoom: Dict[str, Any]
+            self,
+            df: pd.DataFrame,
+            us_states: Dict[str, Any],
+            state_count: pd.DataFrame,
+            manual_zoom: Dict[str, Any]
     ) -> None:
         """
         Initializes the Map object with necessary data and initial zoom settings.
@@ -280,7 +280,7 @@ class ScatterPlot:
         return fig
 
     def create_with_size(
-        self, x_attr: str, y_attr: str, size_attr: str, states: List[str] = None
+            self, x_attr: str, y_attr: str, size_attr: str, states: List[str] = None
     ) -> go.Figure:
         dff = self.df
         if states:
@@ -310,7 +310,7 @@ class ScatterPlot:
         return fig
 
     def create_with_trendline(
-        self, x_attr: str, y_attr: str, trendline: str = "ols", states: List[str] = None
+            self, x_attr: str, y_attr: str, trendline: str = "ols", states: List[str] = None
     ) -> go.Figure:
         dff = self.df
         if states:
@@ -349,11 +349,11 @@ class GroupedBarChart:
         self.aliases = aliases
 
     def create(
-        self,
-        x_attr: str,
-        y_attr: str,
-        group_attr: str = None,
-        states: List[str] = None
+            self,
+            x_attr: str,
+            y_attr: str,
+            group_attr: str = None,
+            states: List[str] = None
     ) -> go.Figure:
         dff = self.df
         if states:
@@ -404,11 +404,11 @@ class ClusteredBarChart:
         self.aliases = aliases
 
     def create(
-        self,
-        x_attr: str,
-        y_attr: str,
-        cluster_attr: str = None,
-        states: List[str] = None
+            self,
+            x_attr: str,
+            y_attr: str,
+            cluster_attr: str = None,
+            states: List[str] = None
     ) -> go.Figure:
         dff = self.df
         if states:
@@ -562,6 +562,8 @@ class PieChart:
             legend=dict(font=dict(color='white'), bgcolor='rgba(0,0,0,0)')
         )
         return fig
+
+
 class DomainPlots:
     """
     A class with 18 methods, each returning a Plotly figure for a specific
@@ -603,6 +605,11 @@ class DomainPlots:
             },
         )
         fig.update_traces(mode="lines+markers", line=dict(width=3))
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_1_2_types_biggest_changes(self) -> go.Figure:
@@ -630,6 +637,11 @@ class DomainPlots:
                 "count_incidents": "Incident Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_1_3_seasonal_patterns(self) -> go.Figure:
@@ -651,6 +663,11 @@ class DomainPlots:
                 "count_incidents": "Incident Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     # --------------- (2) Spatial Patterns ---------------
@@ -669,6 +686,11 @@ class DomainPlots:
             names="state_name",
             values="count",
             title="2.1 Top 10 States by Incident Count",
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
 
@@ -694,6 +716,11 @@ class DomainPlots:
                 "count": "Incident Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_2_3_distribution_diff_incident_types(self) -> go.Figure:
@@ -713,6 +740,11 @@ class DomainPlots:
                 "TYPE": self.aliases.get("TYPE", "Type"),
                 "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
             },
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
 
@@ -738,6 +770,11 @@ class DomainPlots:
                 "WEATHER": self.aliases.get("WEATHER", "Weather"),
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_3_2_factors_affect_severity(self) -> go.Figure:
@@ -758,6 +795,11 @@ class DomainPlots:
                 "WEATHER": self.aliases.get("WEATHER", "Weather"),
                 "TOTINJ": self.aliases.get("TOTINJ", "Total Injuries"),
             },
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
 
@@ -789,6 +831,11 @@ class DomainPlots:
                 "Value": "Count/Value",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     # --------------- (4) Operator Performance ---------------
@@ -811,6 +858,11 @@ class DomainPlots:
                 "RAILROAD": self.aliases.get("RAILROAD", "Operator"),
                 "count": "Incident Count",
             },
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
 
@@ -841,6 +893,11 @@ class DomainPlots:
                 "count": "Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_4_3_operator_higher_lower_specific_incidents(self) -> go.Figure:
@@ -862,31 +919,54 @@ class DomainPlots:
                 "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     # --------------- (5) High-Impact Incidents ---------------
     def plot_5_1_primary_secondary_causes(self) -> go.Figure:
         """
         5.1: Primary & secondary causes of high-impact incidents
-        => group by (CAUSE, CAUSE2)
+        => group by (CAUSE, CAUSE2), only include outliers
         """
         needed = ["CAUSE", "CAUSE2"]
         if not all(n in self.df.columns for n in needed):
             return go.Figure()
 
-        grouped = self.df.groupby(["CAUSE", "CAUSE2"]).size().reset_index(name="count")
+        # Define the outlier filtering criteria (example: using IQR for numeric columns)
+        if 'count' in self.df.columns:
+            Q1 = self.df['count'].quantile(0.25)
+            Q3 = self.df['count'].quantile(0.75)
+            IQR = Q3 - Q1
+            outlier_condition = (self.df['count'] < (Q1 - 1.5 * IQR)) | (self.df['count'] > (Q3 + 1.5 * IQR))
+            filtered_df = self.df[outlier_condition]
+        else:
+            filtered_df = self.df  # Default: no outlier detection if "count" is not available
+
+        # Group by "CAUSE" and "CAUSE2" on filtered data
+        grouped = filtered_df.groupby(["CAUSE", "CAUSE2"]).size().reset_index(name="count")
+
+        # Create the plot
         fig = px.bar(
             grouped,
             x="CAUSE",
             y="count",
             color="CAUSE2",
             barmode="group",
-            title="5.1 Primary vs. Secondary Causes",
+            title="5.1 Primary vs. Secondary Causes (Outliers Only)",
             labels={
                 "CAUSE": "Primary Cause",
                 "CAUSE2": "Secondary Cause",
                 "count": "Count",
             },
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
 
@@ -914,6 +994,11 @@ class DomainPlots:
                 "count": "Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_5_3_preventable_factors(self) -> go.Figure:
@@ -935,6 +1020,11 @@ class DomainPlots:
                 "ACCAUSE": "Accident Cause",
                 "count": "Count",
             },
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
 
@@ -958,6 +1048,11 @@ class DomainPlots:
                 "count": "Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_6_2_most_frequent_primary_causes(self) -> go.Figure:
@@ -979,6 +1074,11 @@ class DomainPlots:
                 "count": "Count",
             },
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
         return fig
 
     def plot_6_3_avg_damage_by_incident_types(self) -> go.Figure:
@@ -998,5 +1098,10 @@ class DomainPlots:
                 "TYPE": self.aliases.get("TYPE", "Incident Type"),
                 "ACCDMG": self.aliases.get("ACCDMG", "Damage Cost"),
             },
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
         )
         return fig
