@@ -87,6 +87,7 @@ class Map:
 
         self.fig.update_layout(
             mapbox=dict(
+                bounds={"west": -180, "east": -50, "south": 10, "north": 75},
                 style="carto-darkmatter",
                 center=center,
                 zoom=zoom,
@@ -94,6 +95,10 @@ class Map:
                     {
                         "below": 'traces',
                         "sourcetype": "raster",
+                        "sourceattribution": 'Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" '
+                                             'target="_blank">CC-BY-SA2.0</a> <a '
+                                             'href="https://www.openrailwaymap.org/" '
+                                             'target="_blank">OpenRailwayMap</a>',
                         "source": [
                             "https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
                         ],
@@ -105,7 +110,6 @@ class Map:
             paper_bgcolor='darkgrey',
             font=dict(color='white', size=12),
             showlegend=False,
-            transition={'duration': 500, 'easing': 'elastic-in-out'},
         )
         return self.fig
 
@@ -138,6 +142,7 @@ class Map:
                     hoverinfo='skip',
                     customdata=df_state['state_name'].tolist(),
                     name=name,
+                    #colorscale='Blues',
                 )
             )
 
@@ -177,7 +182,6 @@ class Map:
 
         self.fig.update_layout(
             hovermode='closest',
-            transition={'duration': 500, 'easing': 'elastic-in-out'}
         )
 
 

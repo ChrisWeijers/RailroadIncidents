@@ -3,9 +3,32 @@ body, html {
     padding: 0;
     height: 100%;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #2b2b2b;
+    background-color: #1e1e1e;
     overflow-y: auto;
+    scrollbar-gutter: auto;
     overflow-x: hidden;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0);
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: grey;
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .container {
@@ -14,58 +37,60 @@ body, html {
     height: 100vh; /* Full viewport height */
 }
 
-/* Define the top part with two horizontal sections */
-.top {
+    /* Define the top part with two horizontal sections */
+ .top {
     display: grid;
     grid-template-columns: 40% 60%; /* Split the top part horizontally */
-}
+ }
+
+ /* Styling for individual sections */
+  .left, .right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #202020;
+  }
+
+  .left {
+    cursor: pointer;
+    padding: 10px;
+  }
+
+  .right {
+    cursor: auto;
+  }
 
 /* Bottom section for controls and graphs */
-.bottom {
+ .bottom {
     display: flex;
     flex-direction: column;
     background-color: #1e1e1e;
     padding: 10px; /* Padding inside the bottom section */
     gap: 10px;
-}
+ }
 
-/* Styling for individual sections */
-.left, .right {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #202020;
-}
 
-.left {
-    cursor: pointer;
-    padding: 10px;
-}
-
-.right {
-    cursor: auto;
-}
 
 /* Dropdown container for filters and controls */
-.dropdown-container {
+  .dropdown-container {
     display: flex;
     justify-content: space-between; /* Space dropdowns evenly */
     align-items: center;
     gap: 10px;
     padding: 0 10px;
     width: 100%;
-}
+ }
 
-.dropdown-container .Select,
-.dropdown-container .dash-dropdown {
-    width: 100%;
-    padding: 5px 10px;
-    font-size: 16px;
-    border-radius: 5px;
-}
+  .dropdown-container .Select,
+  .dropdown-container .dash-dropdown {
+      width: 100%;
+      padding: 5px 10px;
+      font-size: 16px;
+      border-radius: 5px;
+  }
 
 /* Center content and adjust spacing */
-.content {
+  .content {
     flex: 1; /* Fills the remaining space */
     display: flex;
     align-items: stretch; /* Stretch plots to fill the container */
@@ -73,18 +98,18 @@ body, html {
     gap: 10px;
     width: 100%;
     height: 100%;
-}
+  }
 
 /* Ensure plot containers are properly sized and visible */
-#plot-left, #plot-right {
+  #plot-left, #plot-right {
     width: 100%;
     height: 100%;
     background-color: #303030;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-}
+  }
 
-.datepicker {
+  .datepicker {
     margin: 10px;
     padding: 0; /* Reduced padding */
     width: 100%; /* Ensure it stretches to full width */
@@ -93,7 +118,7 @@ body, html {
     background-color: transparent; /* Make it blend with the background */
     border: none; /* Remove borders for cleaner appearance */
     border-radius: 5px;
-}
+  }
 
 /* Adjustments for responsive behavior */
 @media (max-width: 768px) {
