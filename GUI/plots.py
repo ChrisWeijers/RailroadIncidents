@@ -1,9 +1,11 @@
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple, Optional
 import geopandas as gpd
 from GUI.config import US_POLYGON
+import numpy as np
+
 
 
 class Map:
@@ -397,6 +399,341 @@ class ScatterPlot:
             font_color="white"
         )
         return fig
+
+
+class HeatMap:
+    """
+    Generates a heatmap for visualizing temporal patterns of incident counts.
+    """
+    def __init__(self, aliases: Dict[str, str], df: pd.DataFrame):
+        self.df = df
+        self.aliases = aliases
+
+    def create(self, bin_size: int = 10, states: List[str] = None) -> go.Figure:
+        """
+        Creates a heatmap with months on the y-axis and binned years on the x-axis,
+        showing the total number of incidents.
+
+        Args:
+            bin_size: The number of years to group into each bin.
+            states: Optional list of state names to filter the data.
+
+        Returns:
+            A Plotly Figure object.
+        """
+        dff = self.df
+        if states:
+            dff = dff[dff['state_name'].isin(states)]
+
+        # Ensure 'corrected_year' and 'IMO' (month) are present
+        if 'corrected_year' not in dff.columns or 'IMO' not in dff.columns:
+            raise ValueError("DataFrame must contain 'corrected_year' and 'IMO' columns.")
+
+        # Create year bins
+        min_year = dff['corrected_year'].min()
+        max_year = dff['corrected_year'].max()
+        bins = list(range(min_year, max_year + bin_size, bin_size))
+        labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
+        dff['year_bin'] = pd.cut(dff['corrected_year'], bins=bins, right=False, labels=labels, include_lowest=True)
+
+        # Group by month and year bin and count the incidents using .size()
+        heatmap_data = dff.groupby(['IMO', 'year_bin']).size().reset_index(name='incident_count')
+
+        # Pivot the data for the heatmap
+        pivot_df = heatmap_data.pivot_table(index='IMO', columns='year_bin', values='incident_count', fill_value=0)
+
+        # Rename index to month names
+        pivot_df.index = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+
+        fig = px.imshow(
+            pivot_df,
+            labels=dict(x="Year Bin", y="Month", color="Incident Count"),
+            title=f"Heatmap of Total Incidents by Month and Year Bin (Bin Size: {bin_size} years)",
+            color_continuous_scale=px.colors.sequential.Viridis  # You can choose a different color scale
+        )
+
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
+        return fig
+
+
+class StreamGraph:
+    """
+    Generates a stream graph for visualizing the amount of incident types over time.
+    """
+    def __init__(self, aliases: Dict[str, str], df: pd.DataFrame, incident_types: Dict[int, str]) -> None:
+        self.aliases = aliases
+        self.df = df
+        self.incident_types = incident_types
+
+    def plot(self):
+        """
+        Generates the stream graph.
+        """
+        df_plot = self.df.copy()
+        df_plot['Incident Type Name'] = df_plot['TYPE'].map(self.incident_types)
+
+        # Group by year and incident type, counting occurrences
+        df_grouped = df_plot.groupby(['corrected_year', 'Incident Type Name']).size().reset_index(name='Count')
+
+        # Get unique incident types for creating traces
+        incident_types = df_grouped['Incident Type Name'].unique()
+
+        colors = [
+            '#1f77b4',  # blue
+            '#ff7f0e',  # orange
+            '#2ca02c',  # green
+            '#d62728',  # red
+            '#9467bd',  # purple
+            '#8c564b',  # brown
+            '#e377c2',  # pink
+            '#7f7f7f',  # gray
+            '#bcbd22',  # yellow-green
+            '#17becf',  # cyan
+            '#ff9896',  # light red
+            '#98df8a',  # light green
+            '#c5b0d5'  # light purple
+        ]
+
+        fig = go.Figure()
+
+        for idx, incident_type in enumerate(incident_types):
+            # Use modulo to cycle through colors if there are more incident types than colors
+            color = colors[idx % len(colors)]
+
+            df_type = df_grouped[df_grouped['Incident Type Name'] == incident_type].sort_values(by='corrected_year')
+            fig.add_trace(go.Scatter(
+                x=df_type['corrected_year'],
+                y=df_type['Count'],
+                name=incident_type,
+                stackgroup='one',
+                mode='lines',
+                line=dict(width=0.5),
+                hoverinfo='x+y+name',
+                opacity=1,
+                fillcolor=color  # Add this line to set the fill color
+            ))
+
+        fig.update_layout(
+            title='Incident Types Over Time',
+            xaxis_title='Incident Year',
+            yaxis_title='Number of Incidents',
+            hovermode='x unified',
+            hoverlabel=dict(
+                font_color="black",
+                font_size=12,
+                bgcolor="white"
+            )
+        )
+        return fig
+
+
+class ParallelCategoriesPlot:
+    """
+    A class to create and manage parallel categories plots for accident data visualization.
+
+    Attributes:
+        required_columns (set): Set of required columns in the input DataFrame
+        damage_bins (list): Bin edges for accident damage categories
+        damage_labels (list): Labels for damage categories
+        injuries_bins (list): Bin edges for injury categories
+        injuries_labels (list): Labels for injury categories
+        speed_bins (list): Bin edges for speed categories
+        speed_labels (list): Labels for speed categories
+    """
+
+    def __init__(self):
+        """Initialize the ParallelCategoriesPlot with predefined bin ranges and labels."""
+        self.required_columns = {
+            "TYPE_LABEL", "ACCDMG", "WEATHER_LABEL",
+            "TOTINJ", "TRNSPD", "state_name"
+        }
+
+        # Define bins and labels for different categories
+        self.damage_bins = [0, 100000, 500000, 1000000, 5000000]  # Last bin will be added dynamically
+        self.damage_labels = [
+            "Low Damage", "Moderate Damage", "High Damage",
+            "Severe Damage", "Extreme Damage"
+        ]
+
+        self.injuries_bins = [0, 1, 5, 10, 20]  # Last bin will be added dynamically
+        self.injuries_labels = [
+            "No Injuries", "1-5 Injuries", "6-10 Injuries",
+            "11-20 Injuries", "21+ Injuries"
+        ]
+
+        self.speed_bins = [0, 10, 30, 50, 70, 100]  # Last bin will be added dynamically
+        self.speed_labels = [
+            "Very Slow", "Slow", "Moderate", "Fast",
+            "Very Fast", "Extremely Fast"
+        ]
+
+    def _validate_data(self, df: pd.DataFrame) -> bool:
+        """
+        Validate that the input DataFrame contains all required columns.
+
+        Args:
+            df: Input DataFrame to validate
+
+        Returns:
+            bool: True if all required columns are present, False otherwise
+        """
+        return self.required_columns.issubset(df.columns)
+
+    def _create_binned_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Create binned columns for damage, injuries, and speed.
+
+        Args:
+            df: Input DataFrame
+
+        Returns:
+            DataFrame with additional binned columns
+        """
+        df = df.copy()
+
+        # Add maximum values to bins
+        damage_bins = self.damage_bins + [float(df["ACCDMG"].max())]
+        injuries_bins = self.injuries_bins + [float(df["TOTINJ"].max())]
+        speed_bins = self.speed_bins + [float(df["TRNSPD"].max())]
+
+        # Create binned columns
+        df["ACCDMG_Binned"] = pd.cut(
+            df["ACCDMG"],
+            bins=damage_bins,
+            labels=self.damage_labels,
+            include_lowest=True
+        )
+
+        df["Injuries_Binned"] = pd.cut(
+            df["TOTINJ"],
+            bins=injuries_bins,
+            labels=self.injuries_labels,
+            include_lowest=True
+        )
+
+        df["TRNSPD_Binned"] = pd.cut(
+            df["TRNSPD"],
+            bins=speed_bins,
+            labels=self.speed_labels,
+            include_lowest=True
+        )
+
+        return df
+
+    def _assign_state_colors(
+            self,
+            df: pd.DataFrame,
+            selected_states: Optional[List[str]] = None
+    ) -> pd.DataFrame:
+        """
+        Assign colors to states based on selection.
+
+        Args:
+            df: Input DataFrame
+            selected_states: List of selected state names
+
+        Returns:
+            DataFrame with state_color column added
+        """
+        df = df.copy()
+
+        if selected_states:
+            mask = df["state_name"].isin(selected_states)
+            df["state_color"] = np.where(mask, "#FF0000", "#0000FF")
+        else:
+            df["state_color"] = "#0000FF"
+
+        return df
+
+    def create_plot(
+            self,
+            df: pd.DataFrame,
+            selected_states: Optional[List[str]] = None,
+            display_style: Dict = None,
+            hidden_style: Dict = None
+    ):
+        """
+        Create a parallel categories plot based on the input data.
+
+        Args:
+            df: Input DataFrame containing accident data
+            selected_states: List of selected state names
+            display_style: Dictionary containing display style settings
+            hidden_style: Dictionary containing hidden style settings
+
+        Returns:
+            Tuple containing:
+            - Plotly figure object
+            - Style dictionary for left component
+            - Style dictionary for right component
+        """
+        try:
+            if not self._validate_data(df):
+                raise ValueError("Missing required columns in DataFrame")
+
+            # Process data
+            df = self._create_binned_columns(df)
+            df = self._assign_state_colors(df, selected_states)
+
+            # Filter data if states are selected
+            if selected_states and len(df[df["state_name"].isin(selected_states)]) == 0:
+                fig = px.scatter(title="No data available for selected states")
+            else:
+                # Prepare data for plotting
+                plot_columns = [
+                    "TYPE_LABEL", "WEATHER_LABEL", "ACCDMG_Binned",
+                    "Injuries_Binned", "TRNSPD_Binned", "state_color"
+                ]
+                df_filtered = df[plot_columns]
+
+                # Create plot
+                title = ("(2.3) Damage Distribution Analysis for "
+                         f"{', '.join(selected_states)}" if selected_states else
+                         "(2.3) Overall Damage Distribution Analysis")
+
+                fig = px.parallel_categories(
+                    df_filtered,
+                    dimensions=[
+                        "TYPE_LABEL", "WEATHER_LABEL", "ACCDMG_Binned",
+                        "Injuries_Binned", "TRNSPD_Binned"
+                    ],
+                    color="state_color",
+                    labels={
+                        "TYPE_LABEL": "Incident Type",
+                        "ACCDMG_Binned": "Damage Category",
+                        "WEATHER_LABEL": "Weather Condition",
+                        "Injuries_Binned": "Injury Severity",
+                        "TRNSPD_Binned": "Train Speed",
+                        "state_color": "State Selection",
+                    },
+                    title=title
+                )
+
+            # Update layout
+            fig.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font_color="white",
+            )
+
+            return fig, display_style or {}, hidden_style or {}
+
+        except Exception as e:
+            print(f"Error in parallel categories plot: {str(e)}")
+            fig = px.scatter(title="Error generating parallel categories plot")
+            fig.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font_color="white",
+            )
+            return fig, display_style or {}, hidden_style or {}
 
 
 class GroupedBarChart:
@@ -1165,3 +1502,4 @@ class DomainPlots:
             font_color="white"
         )
         return fig
+

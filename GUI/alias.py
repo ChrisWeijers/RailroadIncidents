@@ -110,7 +110,7 @@ COMPATIBLE_TYPES: Dict[str, List[str]] = {
 }
 
 
-incident_types: Dict[str, str] = {
+incident_types: Dict[int, str] = {
     1: 'Derailment',
     2: 'Head on collision',
     3: 'Rearend collision',

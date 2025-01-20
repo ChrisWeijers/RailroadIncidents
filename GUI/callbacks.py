@@ -15,6 +15,9 @@ from GUI.plots import (
     ClusteredBarChart,
     StackedBarChart,
     DomainPlots,
+    HeatMap,
+    StreamGraph,
+    ParallelCategoriesPlot
 )
 
 
@@ -216,25 +219,19 @@ def setup_callbacks(
                 style_right = hidden_style
 
             elif selected_viz == "plot_1_3":
-                # 1.3 Seasonal patterns => group by 'IMO' (month)
-                if "IMO" in dff.columns:
-                    monthly = dff.groupby("IMO").size().reset_index(name="count_incidents")
-                    fig_left = px.bar(
-                        monthly,
-                        x="IMO",
-                        y="count_incidents",
-                        title="(1.3) Seasonal Patterns by Month",
-                        labels={
-                            "IMO": "Incident Month",
-                            "count_incidents": "Incident Count",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    )
-                    style_left = display_style
+                # 1.3 Seasonal patterns => use the HeatMap class
+                heatmap_plotter = HeatMap(aliases=aliases,
+                                          df=dff)
+
+                bin_size = 1
+                fig_left = heatmap_plotter.create(bin_size=bin_size, states=selected_states)
+                fig_left.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font_color="white"
+                )
+                style_left = display_style
+                style_right = hidden_style
 
             # ------------------ (2) Spatial Patterns ------------------
             elif selected_viz == "plot_2_1":
