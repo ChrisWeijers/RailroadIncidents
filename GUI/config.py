@@ -1,7 +1,7 @@
 from GUI.data import get_data
 from shapely.geometry import Polygon
 
-df, states_center, state_count, us_states, states_alphabetical, df_map = get_data()
+df, states_center, state_count, us_states, states_alphabetical, df_map, city_data, crossing_data = get_data()
 
 
 date_min = df['corrected_year'].min()

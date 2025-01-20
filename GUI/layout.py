@@ -1,6 +1,6 @@
 from dash import html, dcc
 
-def create_layout(config: list, date_min, date_max, attributes, aliases) -> html.Div:
+def create_layout(config: list, date_min, date_max, attributes, aliases, city_data) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
@@ -143,6 +143,20 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                                 placeholder="Select a question/visualization",
                                 value=None,
                                 clearable=True,
+                            ),
+                            dcc.Checklist(
+                                id="show-cities",
+                                className='dropdown',
+                                options=[{"label": "Cities", "value": "show"}],
+                                value=[],
+                                style={"color": "white", "marginTop": "10px"},
+                            ),
+                            dcc.Checklist(
+                                id="show-crossings",
+                                className='dropdown',
+                                options=[{"label": "Crossings", "value": "show"}],
+                                value=[],
+                                style={"color": "white", "marginTop": "10px"},
                             ),
                         ],
                     ),

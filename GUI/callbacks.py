@@ -30,6 +30,8 @@ def setup_callbacks(
         df_map: pd.DataFrame,
         states_center,
         aliases: Dict[str, str],
+        city_data: pd.DataFrame,
+        crossing_data: pd.DataFrame,
 ):
     """
     Sets up all the callback functions for the Dash application.
@@ -112,9 +114,11 @@ def setup_callbacks(
             Input("hovered-state", "data"),
             Input("manual-zoom", "data"),
             Input("range-slider", "value"),
+            Input("show-cities", "value"),
+            Input("show-crossings", "value")
         ],
     )
-    def update_map(selected_states, hovered_state, manual_zoom, selected_range):
+    def update_map(selected_states, hovered_state, manual_zoom, selected_range, show_cities, show_crossings):
         """
         Update the choropleth map and bar chart at the TOP
         based on state selection, hover, and date range.
@@ -142,6 +146,52 @@ def setup_callbacks(
 
             if len(selected_states) > 1:
                 bar = BarChart(filtered_states, states_center).create_barchart()
+
+        # Add city data if the "show-cities" checkbox is checked
+        if "show" in show_cities:
+            fig_map.add_trace(
+                px.scatter_mapbox(
+                    city_data,
+                    lat="lat",
+                    lon="lng",
+                    hover_name="city",
+                    hover_data={"lat": False, "lng": False, "population": True},
+                ).update_traces(
+                    hovertemplate="<b>%{hovertext}</b><br>Population size: %{customdata}<extra></extra>",
+                    customdata=city_data["population"],
+                    marker=dict(size=10, color="cyan", symbol="circle", opacity=0.6),
+                ).data[0]
+            )
+
+        # Add crossing data if the "show-crossings" checkbox is checked
+        if "show" in show_crossings:
+            fig_map.add_trace(
+                px.scatter_mapbox(
+                    crossing_data,
+                    lat="Latitude",
+                    lon="Longitude",
+                    hover_name="Whistle Ban",  # Display "Whistle Ban" as the main label
+                    hover_data={
+                        "Latitude": False,  # Hide latitude
+                        "Longitude": False,  # Hide longitude
+                        "Track Signaled": True,  # Show if track is signaled
+                        "Number Of Bells": True,  # Show the number of bells
+                        "Traffic Lanes": True,  # Show the traffic lanes
+                        "Crossing Illuminated": True,  # Show if the crossing is illuminated
+                    },
+                ).update_traces(
+                    marker=dict(size=10, color="cyan", symbol="circle", opacity=0.6),
+                    # Style consistent with city points
+                    hovertemplate="<b>%{hovertext}</b><br>"
+                                  "Track Signaled: %{customdata[0]}<br>"
+                                  "Number Of Bells: %{customdata[1]}<br>"
+                                  "Traffic Lanes: %{customdata[2]}<br>"
+                                  "Crossing Illuminated: %{customdata[3]}<extra></extra>",
+                    customdata=crossing_data[
+                        ["Track Signaled", "Number Of Bells", "Traffic Lanes", "Crossing Illuminated"]
+                    ].values,
+                ).data[0]
+            )
 
         return fig_map, bar
 
