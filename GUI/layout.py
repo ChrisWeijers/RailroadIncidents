@@ -35,18 +35,10 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
             "value": "plot_2_1",
         },
         {
-            "label": "2.2 Geographic factors (urban, mountains) vs. incident rates?",
-            "value": "plot_2_2",
-        },
-        {
             "label": "2.3 Distribution differences for various incident types?",
             "value": "plot_2_3",
         },
-        # ----- (3) Contributing Factors -----
-        {
-            "label": "3.1 Which factors (speed, weather, track) correlate strongly?",
-            "value": "plot_3_1",
-        },
+
         {
             "label": "3.2 How do these factors affect severity (damage, injuries)?",
             "value": "plot_3_2",

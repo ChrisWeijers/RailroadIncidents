@@ -1,9 +1,10 @@
 from dash import Output, Input, State, callback_context
 import pandas as pd
 from typing import List, Dict, Any
-from GUI.alias import incident_types, weather, visibility
+from GUI.alias import incident_types, weather, visibility, cause_category_mapping, fra_cause_codes
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 
 # Import the plot classes you need:
 from GUI.plots import (
@@ -176,7 +177,7 @@ def setup_callbacks(
 
         dff["WEATHER_LABEL"] = dff["WEATHER"].map(weather).fillna(dff["WEATHER"])
         dff["VISIBLTY_LABEL"] = dff["VISIBLTY"].map(visibility).fillna(dff["VISIBLTY"])
-
+        dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
         if not selected_viz:
             return fig_left, style_left, style_right
 
@@ -266,7 +267,9 @@ def setup_callbacks(
                         color="count",
                         color_continuous_scale="Blues",
                     )
-
+                    fig_left.update_traces(
+                        hovertemplate="<b>%{label}</b><br>Count: %{value}",
+                    )
                     # Update layout for better aesthetics
                     fig_left.update_layout(
                         margin=dict(t=30, l=0, r=0, b=0),
@@ -333,7 +336,6 @@ def setup_callbacks(
                     style_right = hidden_style
 
             elif selected_viz == "plot_3_2":
-                # 3.2 How do factors affect severity => box x=WEATHER_LABEL, y=TOTINJ
                 if "WEATHER_LABEL" in dff.columns and "TOTINJ" in dff.columns:
                     fig_left = px.box(
                         dff,
@@ -354,9 +356,6 @@ def setup_callbacks(
                     style_right = hidden_style
 
             elif selected_viz == "plot_3_3":
-
-                # 3.3 factor combos => stacked bar of CAUSE_CATEGORY x [CARS, TOTINJ]
-
                 needed = ["CAUSE", "CARS", "TOTINJ"]
 
                 if all(n in dff.columns for n in needed):
@@ -413,6 +412,7 @@ def setup_callbacks(
                         font_color="white"
                     )
                     style_left = display_style
+                    style_right = hidden_style
 
             elif selected_viz == "plot_4_2":
                 # 4.2 Differences in incident types by operator => grouped bar
@@ -462,6 +462,7 @@ def setup_callbacks(
                         font_color="white"
                     )
                     style_left = display_style
+                    style_right = hidden_style
 
             # ------------------ (5) High-Impact Incidents ------------------
             elif selected_viz == "plot_5_1":
@@ -757,28 +758,79 @@ def setup_callbacks(
                             "Count": "Incident Count",
                         },
                     )
+                    fig_left.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font_color="white"
+                    ),
                     style_left = display_style
                     style_right = hidden_style
 
+
             elif selected_viz == "plot_6_3":
-                # 6.3 Avg damage cost among different incident types => box x=TYPE_LABEL, y=ACCDMG
+                # 6.3 Avg damage cost among different incident types => violin plot x=TYPE_LABEL, y=ACCDMG
                 if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
-                    fig_left = px.box(
+                    import numpy as np
+                    # Initialize the outlier column
+                    dff["is_outlier"] = False
+                    # Calculate IQR to find outliers for each TYPE_LABEL
+                    for label in dff["TYPE_LABEL"].unique():
+                        # Filter the group and drop NaN values
+                        group = dff[dff["TYPE_LABEL"] == label].dropna(subset=["ACCDMG"])
+                        # Skip empty groups after filtering NaNs
+                        if group.empty:
+                            continue
+                        # Calculate Q1, Q3, and IQR
+                        Q1 = np.percentile(group["ACCDMG"], 25)
+                        Q3 = np.percentile(group["ACCDMG"], 75)
+                        IQR = Q3 - Q1
+                        lower_bound = Q1 - 1.5 * IQR
+                        upper_bound = Q3 + 1.5 * IQR
+                        # Mark non-outliers
+                        dff.loc[group.index, "is_outlier"] = ~(
+                                (group["ACCDMG"] < lower_bound) | (group["ACCDMG"] > upper_bound)
+                        )
+                    # Create two subsets: outliers and non-outliers
+                    non_outliers = dff[dff["is_outlier"]]
+                    outliers = dff[~dff["is_outlier"]]
+                    # Plot with outliers (style_left)
+                    fig_left = px.violin(
                         dff,
                         x="TYPE_LABEL",
                         y="ACCDMG",
-                        title="(6.3) Avg Damage by Incident Type",
+                        box=True,
+                        points="all",  # Show all points, including outliers
+                        title="(6.3) Damage Distribution by Incident Type (With Outliers)",
+                        labels={
+                            "TYPE_LABEL": "Incident Type",
+                             "ACCDMG": "Damage Cost",
+                        },
+                    )
+                    # Plot without outliers (style_right)
+                    fig_right = px.violin(
+                        non_outliers,
+                        x="TYPE_LABEL",
+                        y="ACCDMG",
+                        box=True,
+                        points="all",  # Show only non-outlier points
+                        title="(6.3) Damage Distribution by Incident Type (Without Outliers)",
                         labels={
                             "TYPE_LABEL": "Incident Type",
                             "ACCDMG": "Damage Cost",
                         },
                     )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    )
-                    style_left = display_style
+                    # Update layouts for both figures
+                    for fig in [fig_left, fig_right]:
+                        fig.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                        )
+                    # Assign styles
+                    style_left = display_style  # With outliers
+                    style_right = display_style
+
+
 
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
