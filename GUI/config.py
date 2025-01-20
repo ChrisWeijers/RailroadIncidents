@@ -35,3 +35,15 @@ US_POLYGON = Polygon([
     (-100, 60),        # Mid-west to Alaska
     (-179.15, 71.39)   # Close the loop
 ])
+
+from shapely.geometry import box, mapping
+from shapely.ops import unary_union
+
+# Define a bounding box for the entire map
+WORLD_BOUNDS = box(-180, -90, 180, 90)
+
+# Create the mask by subtracting the US polygon from the world bounds
+MASK_POLYGON = WORLD_BOUNDS.difference(US_POLYGON)
+
+# Convert the mask to GeoJSON format
+mask_geojson = mapping(MASK_POLYGON)
