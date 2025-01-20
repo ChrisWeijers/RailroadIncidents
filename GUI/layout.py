@@ -162,11 +162,11 @@ def create_layout(config: list, date_min, date_max, attributes, aliases) -> html
                                 className="content",
                                 style={"display": "none"},
                             ),
-                            dcc.Graph(
-                                id="plot-right",
-                                className="content",
-                                style={"display": "none"},
-                            ),
+                            html.Div(
+                                'No visualization selected. Choose a visualization in the dropdown...',
+                                id='plot-right',
+                                className='content',
+                            )
                         ],
                     ),
                 ],

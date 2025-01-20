@@ -17,13 +17,15 @@ from GUI.plots import (
     DomainPlots,
 )
 
+
 def setup_callbacks(
-    app,
-    df: pd.DataFrame,
-    state_count: pd.DataFrame,
-    us_states: Dict[str, Any],
-    df_map: pd.DataFrame,
-    aliases: Dict[str, str],
+        app,
+        df: pd.DataFrame,
+        state_count: pd.DataFrame,
+        us_states: Dict[str, Any],
+        df_map: pd.DataFrame,
+        states_center,
+        aliases: Dict[str, str],
 ):
     """
     Sets up all the callback functions for the Dash application.
@@ -119,7 +121,7 @@ def setup_callbacks(
         fig_map = us_map.plot_map()
 
         # Basic horizontal bar chart
-        bar = BarChart(state_count).create_barchart()
+        bar = BarChart(df_filtered, states_center).create_barchart()
 
         # Highlight hovered state
         if hovered_state:
@@ -135,8 +137,7 @@ def setup_callbacks(
             us_map.add_points(filtered_states, "clickstate")
 
             if len(selected_states) > 1:
-                filtered_state_count = state_count[state_count["state_name"].isin(selected_states)]
-                bar = BarChart(filtered_state_count).create_barchart()
+                bar = BarChart(filtered_states, states_center).create_barchart()
 
         return fig_map, bar
 
@@ -144,7 +145,6 @@ def setup_callbacks(
         [
             Output("plot-left", "figure"),
             Output("plot-left", "style"),
-            Output("plot-right", "figure"),
             Output("plot-right", "style"),
         ],
         [
@@ -158,8 +158,8 @@ def setup_callbacks(
         display_style = {"display": "block"}
 
         empty_fig = {}
-        fig_left, fig_right = empty_fig, empty_fig
-        style_left, style_right = hidden_style, hidden_style
+        fig_left = empty_fig
+        style_left, style_right = hidden_style, {"color": "white", 'fontSize': 25}
 
         # Filter data by corrected_year range
         dff = filter_by_range(df.copy(), selected_range)
@@ -175,7 +175,7 @@ def setup_callbacks(
         dff["VISIBLTY_LABEL"] = dff["VISIBLTY"].map(visibility).fillna(dff["VISIBLTY"])
 
         if not selected_viz:
-            return fig_left, style_left, fig_right, style_right
+            return fig_left, style_left, style_right
 
         try:
             # ------------------ (1) Temporal Trends ------------------
@@ -200,34 +200,20 @@ def setup_callbacks(
                         font_color="white"
                     )
                     style_left = display_style
+                    style_right = hidden_style
 
             elif selected_viz == "plot_1_2":
                 # 1.2 Which incident types show biggest changes over time?
-                # Use TYPE_LABEL with corrected_year
-                if "corrected_year" in dff.columns and "TYPE_LABEL" in dff.columns:
-                    grouped = (
-                        dff.groupby(["corrected_year", "TYPE_LABEL"])
-                        .size()
-                        .reset_index(name="count_incidents")
-                    )
-                    fig_left = px.line(
-                        grouped,
-                        x="corrected_year",
-                        y="count_incidents",
-                        color="TYPE_LABEL",
-                        title="(1.2) Incident Types Over Time",
-                        labels={
-                            "corrected_year": "Incident Year",
-                            "TYPE_LABEL": "Incident Type",
-                            "count_incidents": "Count",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    )
-                    style_left = display_style
+                stream_graph = StreamGraph(aliases, dff, incident_types)
+                fig_left = stream_graph.plot()
+
+                fig_left.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font_color="white"
+                )
+                style_left = display_style
+                style_right = hidden_style
 
             elif selected_viz == "plot_1_3":
                 # 1.3 Seasonal patterns => group by 'IMO' (month)
@@ -292,74 +278,62 @@ def setup_callbacks(
                     )
 
                     style_left = display_style
+                    style_right = hidden_style
 
-
-            elif selected_viz == "plot_2_2":
-                # 2.2 Geographic factors => example box or bar
-                # We do a bar: x=state_name, # of incidents
-                if "state_name" in dff.columns:
-                    st_counts = dff["state_name"].value_counts().reset_index()
-                    st_counts.columns = ["state_name", "count"]
-                    fig_left = px.bar(
-                        st_counts,
-                        x="state_name",
-                        y="count",
-                        title="(2.2) Incidents by State (Placeholder)",
-                        labels={
-                            "state_name": "State",
-                            "count": "Count",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    )
-                    style_left = display_style
 
             elif selected_viz == "plot_2_3":
-                # 2.3 Distribution differences => box x=TYPE_LABEL, y=ACCDMG
-                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
-                    fig_left = px.box(
-                        dff,
-                        x="TYPE_LABEL",
-                        y="ACCDMG",
-                        title="(2.3) Damage Distribution by Incident Type",
+                # 2.3 Distribution differences => Parallel Categories Plot with selectable states
+                if {"TYPE_LABEL", "ACCDMG", "WEATHER_LABEL", "TOTINJ", "TRNSPD", "state_name"}.issubset(dff.columns):
+                    # Create bins for ACCDMG
+                    bins_damage = [0, df["ACCDMG"].max() / 5, df["ACCDMG"].max() / 5 * 2, df["ACCDMG"].max() / 5 * 3,
+                                   df["ACCDMG"].max() / 5 * 4, df["ACCDMG"].max()]
+                    labels_damage = ["Low Damage", "Moderate Damage", "High Damage", "Severe Damage", "Extreme Damage"]
+                    dff["ACCDMG_Binned"] = pd.cut(dff["ACCDMG"], bins=bins_damage, labels=labels_damage,
+                                                  include_lowest=True)
+                    # Create bins for Injuries
+                    bins_injuries = [0, df["TOTINJ"].max() / 5, df["TOTINJ"].max() / 5 * 2, df["TOTINJ"].max() / 5 * 3,
+                                     df["TOTINJ"].max() / 5 * 4, df["ACCDMG"].max()]
+                    labels_injuries = ["No Injuries", "1-5 Injuries", "6-10 Injuries", "11-20 Injuries", "21+ Injuries"]
+                    dff["Injuries_Binned"] = pd.cut(dff["TOTINJ"], bins=bins_injuries, labels=labels_injuries,
+                                                    include_lowest=True)
+                    # Create bins for Train Speed
+                    bins_speed = [0, df["TRNSPD"].max() / 5, df["TRNSPD"].max() / 5 * 2, df["TRNSPD"].max() / 5 * 3,
+                                  df["TRNSPD"].max() / 5 * 4, df["TRNSPD"].max()]
+                    labels_speed = ["Very Slow", "Slow", "Moderate", "Fast", "Very Fast"]
+                    dff["TRNSPD_Binned"] = pd.cut(dff["TRNSPD"], bins=bins_speed, labels=labels_speed,
+                                                  include_lowest=True)
+                    # Assign explicit colors dynamically based on selected states
+                    dff["state_color"] = dff["state_name"].apply(
+                        lambda x: "#FF0000" if x in selected_states else "#0000FF"  # Red for selected, Blue for others
+                    )
+                    # Filter and prepare data for PCP
+                    selected_columns = ["TYPE_LABEL", "WEATHER_LABEL", "ACCDMG_Binned", "Injuries_Binned",
+                                        "TRNSPD_Binned", "state_color"]
+                    dff_filtered = dff[selected_columns]
+                    # Create Parallel Categories Plot
+                    fig_left = px.parallel_categories(
+                        dff_filtered,
+                        dimensions=["TYPE_LABEL", "WEATHER_LABEL", "ACCDMG_Binned", "Injuries_Binned", "TRNSPD_Binned"],
+                        color="state_color",  # Use the explicit color column
                         labels={
                             "TYPE_LABEL": "Incident Type",
-                            "ACCDMG": "Total Damage Cost",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    )
-                    style_left = display_style
-
-            # ------------------ (3) Contributing Factors ------------------
-            elif selected_viz == "plot_3_1":
-                # 3.1 speed, weather, track => scatter x=TRNSPD, y=ACCDMG, color=WEATHER_LABEL
-                needed = ["TRNSPD", "ACCDMG", "WEATHER_LABEL"]
-                if all(col in dff.columns for col in needed):
-                    fig_left = px.scatter(
-                        dff,
-                        x="TRNSPD",
-                        y="ACCDMG",
-                        color="WEATHER_LABEL",
-                        title="(3.1) Speed vs. Damage (color=Weather)",
-                        labels={
-                            "TRNSPD": "Train Speed (mph)",
-                            "ACCDMG": "Total Damage Cost",
+                            "ACCDMG_Binned": "Damage Category",
                             "WEATHER_LABEL": "Weather Condition",
+                            "Injuries_Binned": "Injury Severity",
+                            "TRNSPD_Binned": "Train Speed",
+                            "state_color": "State Selection",
                         },
+                        title="(2.3) Damage Distribution by Incident Type, Weather, and Injuries",
                     )
+                    # Update layout for aesthetics
                     fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
                     )
+
                     style_left = display_style
+                    style_right = hidden_style
 
             elif selected_viz == "plot_3_2":
                 # 3.2 How do factors affect severity => box x=WEATHER_LABEL, y=TOTINJ
@@ -380,7 +354,7 @@ def setup_callbacks(
                         font_color="white"
                     )
                     style_left = display_style
-
+                    style_right = hidden_style
 
             elif selected_viz == "plot_3_3":
 
@@ -418,7 +392,7 @@ def setup_callbacks(
                         font_color="white",
                     )
                     style_left = display_style
-
+                    style_right = hidden_style
 
             # ------------------ (4) Operator Performance ------------------
             elif selected_viz == "plot_4_1":
@@ -470,6 +444,7 @@ def setup_callbacks(
                         font_color="white"
                     )
                     style_left = display_style
+                    style_right = hidden_style
 
             elif selected_viz == "plot_4_3":
                 # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
@@ -493,34 +468,215 @@ def setup_callbacks(
 
             # ------------------ (5) High-Impact Incidents ------------------
             elif selected_viz == "plot_5_1":
-                # 5.1 Primary & secondary causes => group by (CAUSE, CAUSE2)
-                if "CAUSE" in dff.columns and "CAUSE2" in dff.columns:
-                    grouped = dff.groupby(["CAUSE", "CAUSE2"]).size().reset_index(name="count")
-                    fig_left = px.bar(
-                        grouped,
-                        x="CAUSE",
-                        y="count",
-                        color="CAUSE2",
-                        barmode="group",
-                        title="(5.1) Primary vs. Secondary Causes",
+                # 5.1 Primary & secondary causes => group by (CAUSE_CATEGORY, CAUSE2_CATEGORY)
+                required_columns = ["CAUSE", "CAUSE2", "ACCDMG", "TOTINJ", "TOTKLD"]
+                if all(col in dff.columns for col in required_columns):
+                    # Define the outlier detection function
+                    def is_outlier(series):
+                        Q1 = series.quantile(0.25)
+                        Q3 = series.quantile(0.75)
+                        IQR = Q3 - Q1
+                        lower_bound = Q1 - 1.5 * IQR
+                        upper_bound = Q3 + 1.5 * IQR
+                        return (series < lower_bound) | (series > upper_bound)
+
+                    # Apply outlier detection for each relevant column
+                    outlier_damage = is_outlier(dff["ACCDMG"])
+                    outlier_injuries = is_outlier(dff["TOTINJ"])
+                    outlier_fatalities = is_outlier(dff["TOTKLD"])
+
+                    # Combine outlier conditions
+                    # Use logical OR (|) if you want to include incidents that are outliers in any one category
+                    # Use logical AND (&) if you want to include only incidents that are outliers in all categories
+                    outliers_condition = outlier_damage & outlier_injuries & outlier_fatalities  # Changed to OR
+
+                    # Filter the DataFrame to include only outliers
+                    dff_outliers = dff[outliers_condition].copy()
+
+                    # Map both primary and secondary causes to their categories
+                    dff_outliers["CAUSE_CATEGORY"] = dff_outliers["CAUSE"].map(cause_category_mapping).fillna("Unknown")
+                    dff_outliers["CAUSE2_CATEGORY"] = dff_outliers["CAUSE2"].map(cause_category_mapping).fillna(
+                        "Unknown")
+
+                    # Group by cause categories and compute counts
+                    grouped = dff_outliers.groupby(["CAUSE_CATEGORY", "CAUSE2_CATEGORY"]).size().reset_index(
+                        name="count")
+
+                    # Check if there are any outliers to plot
+                    if not grouped.empty:
+                        # Create the bar plot for outliers
+                        fig_left = px.bar(
+                            grouped,
+                            x="CAUSE_CATEGORY",
+                            y="count",
+                            color="CAUSE2_CATEGORY",
+                            barmode="group",
+                            title="(5.1) Primary vs. Secondary Cause Categories (High-Impact Incidents)",
+                            labels={
+                                "CAUSE_CATEGORY": "Primary Cause Category",
+                                "CAUSE2_CATEGORY": "Secondary Cause Category",
+                                "count": "Number of High-Impact Incidents",
+                            },
+                        )
+
+                        # Update the trace to adjust bar outline width
+                        fig_left.update_traces(
+                            marker=dict(
+                                line=dict(
+                                    width=0.3,  # Set the outline width here
+                                )
+                            )
+                        )
+
+                        # Calculate positions for vertical lines between primary cause categories
+                        primary_categories = sorted(dff_outliers["CAUSE_CATEGORY"].unique())
+                        number_of_primary = len(primary_categories)
+                        line_positions = [i + 0.5 for i in range(1, number_of_primary)]
+
+                        # Define vertical dotted lines
+                        new_shapes = []
+                        for pos in line_positions:
+                            new_shapes.append(dict(
+                                type='line',
+                                x0=pos,
+                                y0=0,
+                                x1=pos,
+                                y1=1,
+                                xref='x',
+                                yref='paper',
+                                line=dict(
+                                    color='white',  # Line color
+                                    width=1,  # Line width
+                                    dash='dot',  # Dash style
+                                )
+                            ))
+
+                        # Handle existing shapes
+                        existing_shapes = fig_left.layout.shapes or []  # Initialize as empty list if None
+
+                        # Convert existing_shapes to a list if it's a tuple
+                        if isinstance(existing_shapes, tuple):
+                            existing_shapes = list(existing_shapes)
+                        elif not isinstance(existing_shapes, list):
+                            existing_shapes = []
+
+                        # Concatenate existing shapes with new_shapes
+                        combined_shapes = existing_shapes + new_shapes
+
+                        # Update layout with combined shapes
+                        fig_left.update_layout(
+                            shapes=combined_shapes,
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                        )
+                        style_left = display_style
+                        style_right = hidden_style
+                    else:
+                        # If no outliers are found, create an empty figure with a message
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            x=0.5,
+                            y=0.5,
+                            text="No high-impact incidents detected based on the defined criteria.",
+                            showarrow=False,
+                            font=dict(color="white", size=14),
+                            xref="paper",
+                            yref="paper",
+                            align="center",
+                        )
+                        fig_left.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                        )
+                        style_left = display_style
+                        style_right = hidden_style
+                else:
+                    # If required columns are missing, return an empty figure or a message
+                    fig_left = go.Figure()
+                    fig_left.add_annotation(
+                        x=0.5,
+                        y=0.5,
+                        text="Required columns for high-impact incident analysis are missing.",
+                        showarrow=False,
+                        font=dict(color="white", size=14),
+                        xref="paper",
+                        yref="paper",
+                        align="center",
+                    )
+                    fig_left.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font_color="white",
                     )
                     style_left = display_style
+                    style_right = hidden_style
 
             elif selected_viz == "plot_5_2":
-                # 5.2 Common circumstances in severe incidents => if ACCDMG>100000
-                if "ACCDMG" in dff.columns and "TYPE_LABEL" in dff.columns:
-                    severe = dff[dff["ACCDMG"] > 100000]
-                    if severe.empty:
-                        severe = dff
-                    type_counts = severe["TYPE_LABEL"].value_counts().nlargest(5).reset_index()
-                    type_counts.columns = ["TYPE_LABEL", "count"]
-                    fig_left = px.pie(
-                        type_counts,
-                        names="TYPE_LABEL",
-                        values="count",
-                        title="(5.2) Common Incident Types in Severe Incidents",
+
+                # Ensure necessary columns exist
+                needed = ["ACCDMG", "TYPE_LABEL", "CAUSE"]
+                if all(n in dff.columns for n in needed):
+                    q1, q3 = dff["ACCDMG"].quantile([0.25, 0.75])
+                    iqr = q3 - q1
+                    outlier_threshold = q3 + 1.5 * iqr
+                    # Filter to keep only outlier rows
+                    outliers = dff[dff["ACCDMG"] > outlier_threshold]
+
+                    if outliers.empty:
+                        outliers = dff
+
+                    outliers["CAUSE_CATEGORY"] = (
+                        outliers["CAUSE"].map(cause_category_mapping).fillna("Unknown")
                     )
-                    style_left = display_style
+
+                    outliers["CAUSE_INFO"] = outliers["CAUSE"].map(
+                        lambda x: next(
+                            (desc
+                             for cat in fra_cause_codes.values()
+                             for subcat in cat.values()
+                             if isinstance(subcat, dict)
+                             for code, desc in subcat.items()
+                             if code == x),
+                            "Unknown cause"
+                        )
+                    )
+
+                    grouped = (
+                        outliers
+                        .groupby(["TYPE_LABEL", "CAUSE_CATEGORY", "CAUSE", "CAUSE_INFO"])
+                        .size()
+                        .reset_index(name="count")
+                    )
+
+                    fig_left = px.sunburst(
+                        grouped,
+                        path=["TYPE_LABEL", "CAUSE_CATEGORY", "CAUSE"],  # Hierarchical path
+                        values="count",
+                        title="(5.2) Common Incident Types and Causes (Outliers by ACCDMG)",
+                        color="count",
+                        color_continuous_scale="Blues",
+                    )
+
+                    fig_left.update_traces(
+                        hovertemplate=(
+                            "<b>%{label}</b><br>"
+                            "Count: %{value}<br>"
+                            "Details: %{customdata}"
+                            "<extra></extra>"
+                        ),
+                        customdata=grouped["CAUSE_INFO"],
+                    )
+
+                    fig_left.update_layout(
+                        margin=dict(t=100, l=0, r=0, b=0),
+                        font=dict(size=14, color="white"),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                    )
+
+                style_left = display_style
+                style_right = hidden_style
 
             elif selected_viz == "plot_5_3":
                 # 5.3 Preventable factors => grouped by ACCAUSE categories
@@ -548,6 +704,7 @@ def setup_callbacks(
                         font_color="white",
                     )
                     style_left = display_style
+                    style_right = hidden_style
 
             # ------------------ (6) Summarizing Incident Characteristics ------------------
             elif selected_viz == "plot_6_1":
@@ -583,7 +740,7 @@ def setup_callbacks(
                         font_color="white"
                     )
                     style_left = display_style
-
+                    style_right = hidden_style
 
             elif selected_viz == "plot_6_2":
 
@@ -604,7 +761,7 @@ def setup_callbacks(
                         },
                     )
                     style_left = display_style
-
+                    style_right = hidden_style
 
             elif selected_viz == "plot_6_3":
                 # 6.3 Avg damage cost among different incident types => box x=TYPE_LABEL, y=ACCDMG
@@ -629,5 +786,4 @@ def setup_callbacks(
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
 
-        return fig_left, style_left, fig_right, style_right
-
+        return fig_left, style_left, style_right

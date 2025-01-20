@@ -14,7 +14,7 @@ app.title = 'Railroad Dashboard'
 app.layout = create_layout(config, date_min, date_max, attributes, aliases)
 
 # Set up callbacks with all required arguments
-setup_callbacks(app, df, state_count, us_states, df_map, aliases)
+setup_callbacks(app, df, state_count, us_states, df_map, states_center, aliases)
 
 if __name__ == '__main__':
     app.run_server(debug=True, dev_tools_ui=True)

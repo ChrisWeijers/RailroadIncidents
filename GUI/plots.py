@@ -142,7 +142,7 @@ class Map:
                     hoverinfo='skip',
                     customdata=df_state['state_name'].tolist(),
                     name=name,
-                    #colorscale='Blues',
+                    colorscale='Blues',
                 )
             )
 
@@ -190,19 +190,31 @@ class BarChart:
     Simple horizontal bar chart for the top-level state_count usage.
     """
 
-    def __init__(self, state_count: pd.DataFrame) -> None:
-        self.state_count = state_count
+    def __init__(self, df, states_center: pd.DataFrame) -> None:
+        self.df = df
+        self.states_center = states_center
         self.bar = None
+        self.states = None
 
     def create_barchart(self) -> go.Figure:
         # Create the bar chart using go.Figure directly instead of px
         self.bar = go.Figure()
 
+        if "state_name" in self.df.columns:
+            self.states = self.df["state_name"].value_counts().reset_index()
+            self.states.columns = ["state_name", "count"]
+            if len(self.df) < 2:
+                diff = pd.concat([self.states_center['Name'], self.states['state_name']]).drop_duplicates(
+                    keep=False).to_frame()
+                diff.columns = ['state_name']
+                diff.insert(1, 'count', [0 for i in diff['state_name']])
+                self.states = self.states._append(diff)
+
         self.bar.add_trace(
             go.Bar(
-                x=self.state_count['crash_count'],
-                y=self.state_count['state_name'],
-                text=self.state_count['state_name'],
+                x=self.states['count'],
+                y=self.states['state_name'],
+                text=self.states['state_name'],
                 textposition='outside',
                 orientation='h',
                 marker=dict(

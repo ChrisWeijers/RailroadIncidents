@@ -90,15 +90,15 @@ body, html {
   }
 
 /* Center content and adjust spacing */
-  .content {
-    flex: 1; /* Fills the remaining space */
+.content {
+    flex: 1;
     display: flex;
-    align-items: stretch; /* Stretch plots to fill the container */
-    justify-content: space-between;
+    align-items: center; /* Changed from stretch to center */
+    justify-content: center; /* Changed from space-between to center */
     gap: 10px;
     width: 100%;
-    height: 100%;
-  }
+    height: 100%
+}
 
 /* Ensure plot containers are properly sized and visible */
   #plot-left, #plot-right {
