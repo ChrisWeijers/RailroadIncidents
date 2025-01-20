@@ -107,6 +107,7 @@ def setup_callbacks(
             return bar_hover["points"][0].get("label") or bar_hover["points"][0].get("x")
         return None
 
+
     @app.callback(
         [Output("crash-map", "figure"), Output("barchart", "figure")],
         [
@@ -818,69 +819,74 @@ def setup_callbacks(
 
 
             elif selected_viz == "plot_6_3":
-                # 6.3 Avg damage cost among different incident types => violin plot x=TYPE_LABEL, y=ACCDMG
+                # 6.3 Avg damage cost among different incident types => violin plot x=TYPE_LABEL, y=ACCDMG without outliers
                 if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
-                    import numpy as np
-                    # Initialize the outlier column
-                    dff["is_outlier"] = False
-                    # Calculate IQR to find outliers for each TYPE_LABEL
-                    for label in dff["TYPE_LABEL"].unique():
-                        # Filter the group and drop NaN values
-                        group = dff[dff["TYPE_LABEL"] == label].dropna(subset=["ACCDMG"])
-                        # Skip empty groups after filtering NaNs
-                        if group.empty:
-                            continue
-                        # Calculate Q1, Q3, and IQR
-                        Q1 = np.percentile(group["ACCDMG"], 25)
-                        Q3 = np.percentile(group["ACCDMG"], 75)
-                        IQR = Q3 - Q1
-                        lower_bound = Q1 - 1.5 * IQR
-                        upper_bound = Q3 + 1.5 * IQR
-                        # Mark non-outliers
-                        dff.loc[group.index, "is_outlier"] = ~(
-                                (group["ACCDMG"] < lower_bound) | (group["ACCDMG"] > upper_bound)
+                    try:
+                        # Calculate IQR for each TYPE_LABEL using groupby
+                        q1 = dff.groupby("TYPE_LABEL")["ACCDMG"].transform(lambda x: x.quantile(0.25))
+                        q3 = dff.groupby("TYPE_LABEL")["ACCDMG"].transform(lambda x: x.quantile(0.75))
+                        iqr = q3 - q1
+                        # Compute bounds for outliers
+                        lower_bound = q1 - 1.5 * iqr
+                        upper_bound = q3 + 1.5 * iqr
+                        # Filter out the outliers
+                        non_outliers = dff[dff["ACCDMG"].between(lower_bound, upper_bound)]
+                        # Create violin plot without outliers=
+                        fig_left = px.violin(
+                            non_outliers,
+                            x="TYPE_LABEL",
+                            y="ACCDMG",
+                            box=True,
+                            points="all",  # Show only non-outlier points
+                            title="(6.3) Damage Distribution by Incident Type (Without Outliers)",
+                            labels={
+                                "TYPE_LABEL": "Incident Type",
+                                "ACCDMG": "Damage Cost",
+                            },
                         )
-                    # Create two subsets: outliers and non-outliers
-                    non_outliers = dff[dff["is_outlier"]]
-                    outliers = dff[~dff["is_outlier"]]
-                    # Plot with outliers (style_left)
-                    fig_left = px.violin(
-                        dff,
-                        x="TYPE_LABEL",
-                        y="ACCDMG",
-                        box=True,
-                        points="all",  # Show all points, including outliers
-                        title="(6.3) Damage Distribution by Incident Type (With Outliers)",
-                        labels={
-                            "TYPE_LABEL": "Incident Type",
-                             "ACCDMG": "Damage Cost",
-                        },
-                    )
-                    # Plot without outliers (style_right)
-                    fig_right = px.violin(
-                        non_outliers,
-                        x="TYPE_LABEL",
-                        y="ACCDMG",
-                        box=True,
-                        points="all",  # Show only non-outlier points
-                        title="(6.3) Damage Distribution by Incident Type (Without Outliers)",
-                        labels={
-                            "TYPE_LABEL": "Incident Type",
-                            "ACCDMG": "Damage Cost",
-                        },
-                    )
-                    # Update layouts for both figures
-                    for fig in [fig_left, fig_right]:
-                        fig.update_layout(
+                        # Update layout for better aesthetics and set fixed width
+                        fig_left.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
                             font_color="white",
+                            width=800,  # Set the fixed width of the plot
+                            height=600,  # Set the fixed height of the plot
+                            margin=dict(l=50, r=50, t=50, b=50),  # Adjust margins
                         )
-                    # Assign styles
-                    style_left = display_style  # With outliers
-                    style_right = display_style
-
-
+                        style_left = display_style  # Show the plot
+                        style_right = hidden_style
+                    except Exception as e:
+                        print(f"Error processing plot_6_3: {e}")
+                        # Return an empty figure with an error message annotation
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the plot.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style  # Still display the error message
+                        style_right = hidden_style
+                    except Exception as e:
+                        print(f"Error processing plot_6_3: {e}")
+                        # Return an empty figure with an error message annotation
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the plot.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style  # Still display the error message
+                        style_right = hidden_style
 
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
