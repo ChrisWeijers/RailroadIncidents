@@ -513,27 +513,37 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
+
             elif selected_viz == "plot_4_2":
                 # 4.2 Differences in incident types by operator => grouped bar
                 if "RAILROAD" in dff.columns and "TYPE_LABEL" in dff.columns:
+                    # Group data by railroad and type, and calculate the total count
                     grouped = (
                         dff.groupby(["RAILROAD", "TYPE_LABEL"])
                         .size()
                         .reset_index(name="count")
                     )
+                    # Compute the total count per railroad
+                    total_counts = grouped.groupby("RAILROAD")["count"].sum().reset_index()
+                    # Select the top 10 railroads by total count
+                    top_10_railroads = total_counts.nlargest(10, "count")["RAILROAD"]
+                    # Filter the grouped data to include only the top 10 railroads
+                    filtered_grouped = grouped[grouped["RAILROAD"].isin(top_10_railroads)]
+                    # Create the grouped bar chart
                     fig_left = px.bar(
-                        grouped,
+                        filtered_grouped,
                         x="RAILROAD",
                         y="count",
                         color="TYPE_LABEL",
                         barmode="group",
-                        title="(4.2) Incident Types by Railroad",
+                        title="(4.2) Incident Types by Top 10 Railroads",
                         labels={
                             "RAILROAD": "Reporting Railroad Code",
                             "TYPE_LABEL": "Incident Type",
                             "count": "Count",
                         },
                     )
+                    # Update layout for appearance
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
@@ -541,6 +551,7 @@ def setup_callbacks(
                     )
                     style_left = display_style
                     style_right = hidden_style
+
 
             elif selected_viz == "plot_4_3":
                 # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
