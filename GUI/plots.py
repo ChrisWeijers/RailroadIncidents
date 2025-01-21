@@ -433,7 +433,7 @@ class HeatMap:
         min_year = dff['corrected_year'].min()
         max_year = dff['corrected_year'].max()
         bins = list(range(min_year, max_year + bin_size, bin_size))
-        labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
+        labels = [f"{bins[i]}" for i in range(len(bins)-1)]
         dff['year_bin'] = pd.cut(dff['corrected_year'], bins=bins, right=False, labels=labels, include_lowest=True)
 
         # Group by month and year bin and count the incidents using .size()
@@ -757,9 +757,9 @@ class ParallelCategoriesPlot:
                 df_filtered = df[plot_columns]
 
                 # Create plot
-                title = ("(2.3) Damage Distribution Analysis for "
+                title = ("Damage Distribution Analysis for "
                          f"{', '.join(selected_states)}" if selected_states else
-                         "(2.3) Overall Damage Distribution Analysis")
+                         "Overall Damage Distribution Analysis")
 
                 fig = px.parallel_categories(
                     df_filtered,
@@ -1058,7 +1058,7 @@ class DomainPlots:
             grouped,
             x="corrected_year",
             y="count_incidents",
-            title="1.1 Total Incidents Over Time",
+            title="Total Incidents Over Time",
             labels={
                 "corrected_year": self.aliases.get("corrected_year", "Year"),
                 "count_incidents": "Incident Count",

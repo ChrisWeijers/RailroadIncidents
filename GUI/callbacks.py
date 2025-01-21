@@ -108,7 +108,6 @@ def setup_callbacks(
             return bar_hover["points"][0].get("label") or bar_hover["points"][0].get("x")
         return None
 
-
     @app.callback(
         [Output("crash-map", "figure"), Output("barchart", "figure")],
         [
@@ -259,9 +258,9 @@ def setup_callbacks(
                         grouped,
                         x="DATE_M",
                         y="count_incidents",
-                        title="(1.1) Total Incidents Over Time",
+                        title="Total Incidents Over Time",
                         labels={
-                            "corrected_year": "Incident Year",
+                            "DATE_M": "Incident Month",
                             "count_incidents": "Incident Count",
                         },
                     )
@@ -269,7 +268,8 @@ def setup_callbacks(
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                        margin=dict(t=100, l=20, r=20, b=20),
+                        font=dict(size=14, color="white"),
                     )
                     style_left = display_style
                     style_right = hidden_style
@@ -282,7 +282,8 @@ def setup_callbacks(
                 fig_left.update_layout(
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
-                    font_color="white"
+                    margin=dict(t=100, l=20, r=20, b=20),
+                    font=dict(size=14, color="white"),
                 )
                 style_left = display_style
                 style_right = hidden_style
@@ -297,7 +298,8 @@ def setup_callbacks(
                 fig_left.update_layout(
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
-                    font_color="white"
+                    margin=dict(t=100, l=20, r=20, b=20),
+                    font=dict(size=14, color="white"),
                 )
                 style_left = display_style
                 style_right = hidden_style
@@ -331,7 +333,7 @@ def setup_callbacks(
                         grouped,
                         path=["state_name", "TYPE_LABEL"],  # Hierarchical path
                         values="count",
-                        title="(2.1) Top 10 States by Incident Count and Type",
+                        title="Top 10 States by Incident Count and Type",
                         color="count",
                         color_continuous_scale="Blues",
                     )
@@ -340,7 +342,7 @@ def setup_callbacks(
                     )
                     # Update layout for better aesthetics
                     fig_left.update_layout(
-                        margin=dict(t=30, l=0, r=0, b=0),
+                        margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
@@ -348,28 +350,29 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
-
             elif selected_viz == "plot_2_3":
                 # 2.3 Distribution differences => Parallel Categories Plot with selectable states
                 if {"TYPE_LABEL", "ACCDMG", "WEATHER_LABEL", "TOTINJ", "TRNSPD", "state_name"}.issubset(dff.columns):
                     # Create bins for ACCDMG
-                    bins_damage = [0, df["ACCDMG"].max() / 5, df["ACCDMG"].max() / 5 * 2, df["ACCDMG"].max() / 5 * 3,
-                                   df["ACCDMG"].max() / 5 * 4, df["ACCDMG"].max()]
-                    labels_damage = ["Low Damage", "Moderate Damage", "High Damage", "Severe Damage", "Extreme Damage"]
-                    dff["ACCDMG_Binned"] = pd.cut(dff["ACCDMG"], bins=bins_damage, labels=labels_damage,
-                                                  include_lowest=True)
+                    # Create bins for ACCDMG using quantiles
+                    dff["ACCDMG_Binned"] = pd.qcut(
+                        df["ACCDMG"],
+                        q=5,
+                        labels=["Very Low Damage", "Low Damage", "Moderate Damage", "High Damage", "Extreme Damage"]
+                    )
+
                     # Create bins for Injuries
-                    bins_injuries = [0, df["TOTINJ"].max() / 5, df["TOTINJ"].max() / 5 * 2, df["TOTINJ"].max() / 5 * 3,
-                                     df["TOTINJ"].max() / 5 * 4, df["ACCDMG"].max()]
-                    labels_injuries = ["No Injuries", "1-5 Injuries", "6-10 Injuries", "11-20 Injuries", "21+ Injuries"]
+                    bins_injuries = [0, 0.1, 1, 10, 20, df["ACCDMG"].max()]
+                    labels_injuries = ["No Injuries", "0-1 Injuries", "1-10 Injuries", "11-20 Injuries", "21+ Injuries"]
                     dff["Injuries_Binned"] = pd.cut(dff["TOTINJ"], bins=bins_injuries, labels=labels_injuries,
                                                     include_lowest=True)
-                    # Create bins for Train Speed
-                    bins_speed = [0, df["TRNSPD"].max() / 5, df["TRNSPD"].max() / 5 * 2, df["TRNSPD"].max() / 5 * 3,
-                                  df["TRNSPD"].max() / 5 * 4, df["TRNSPD"].max()]
-                    labels_speed = ["Very Slow", "Slow", "Moderate", "Fast", "Very Fast"]
-                    dff["TRNSPD_Binned"] = pd.cut(dff["TRNSPD"], bins=bins_speed, labels=labels_speed,
-                                                  include_lowest=True)
+
+                    # Create bins for TRNSPD using quantiles
+                    dff["TRNSPD_Binned"] = pd.qcut(
+                        df["TRNSPD"],
+                        q=5,
+                        labels=["Very Slow", "Slow", "Moderate", "Fast", "Very Fast"]
+                    )
                     # Assign explicit colors dynamically based on selected states
                     dff["state_color"] = dff["state_name"].apply(
                         lambda x: "#FF0000" if x in selected_states else "#0000FF"  # Red for selected, Blue for others
@@ -391,21 +394,18 @@ def setup_callbacks(
                             "TRNSPD_Binned": "Train Speed",
                             "state_color": "State Selection",
                         },
-                        title="(2.3) Damage Distribution by Incident Type, Weather, and Injuries",
+                        title="Damage Distribution by Incident Type, Weather, and Injuries",
                     )
                     # Update layout for aesthetics
                     fig_left.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
-                        font_color="white",
+                        margin=dict(t=100, l=150, r=50, b=20),
+                        font=dict(size=14, color="white"),
                     )
 
                     style_left = display_style
                     style_right = hidden_style
-
-
-
-
 
             elif selected_viz == "plot_3_2":
                 if "WEATHER_LABEL" in dff.columns and "TOTINJ" in dff.columns:
@@ -418,7 +418,8 @@ def setup_callbacks(
                         fig_left.update_layout(
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
-                            font_color="white"
+                            margin=dict(t=100, l=20, r=20, b=20),
+                            font=dict(size=14, color="white"),
                         )
                         style_left = display_style
                         style_right = hidden_style
@@ -453,11 +454,6 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
-
-
-
-
-
             elif selected_viz == "plot_3_3":
                 needed = ["CAUSE", "CARS", "TOTINJ", "TOTKLD", "EVACUATE"]
                 if all(n in dff.columns for n in needed):
@@ -488,7 +484,7 @@ def setup_callbacks(
                         y="Value",
                         color="Factor",
                         barmode="stack",
-                        title="(3.3) Factor Combos by Cause Category",
+                        title="Factor Combos by Cause Category",
                         labels={
                             "CAUSE_CATEGORY": "Cause Category",
                             "Value": "Total Count",
@@ -499,7 +495,8 @@ def setup_callbacks(
                     fig_left.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
-                        font_color="white",
+                        margin=dict(t=100, l=20, r=20, b=20),
+                        font=dict(size=14, color="white"),
                     )
                     style_left = display_style
                     style_right = hidden_style
@@ -515,7 +512,7 @@ def setup_callbacks(
                         rr_counts,
                         x="RAILROAD",
                         y="count",
-                        title="(4.1) Top 10 Railroads by Incident Count",
+                        title="Top 10 Railroads by Incident Count",
                         labels={
                             "RAILROAD": "Reporting Railroad Code",
                             "count": "Count",
@@ -524,7 +521,8 @@ def setup_callbacks(
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                        margin=dict(t=100, l=20, r=20, b=20),
+                        font=dict(size=14, color="white"),
                     )
                     style_left = display_style
                     style_right = hidden_style
@@ -552,7 +550,7 @@ def setup_callbacks(
                         y="count",
                         color="TYPE_LABEL",
                         barmode="group",
-                        title="(4.2) Incident Types by Top 10 Railroads",
+                        title="Incident Types by Top 10 Railroads",
                         labels={
                             "RAILROAD": "Reporting Railroad Code",
                             "TYPE_LABEL": "Incident Type",
@@ -563,7 +561,8 @@ def setup_callbacks(
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                        margin=dict(t=100, l=20, r=20, b=20),
+                        font=dict(size=14, color="white"),
                     )
                     style_left = display_style
                     style_right = hidden_style
@@ -576,7 +575,7 @@ def setup_callbacks(
                         dff,
                         x="RAILROAD",
                         y="ACCDMG",
-                        title="(4.3) Damage by Railroad",
+                        title="Damage by Railroad",
                         labels={
                             "RAILROAD": "Reporting Railroad Code",
                             "ACCDMG": "Total Damage Cost",
@@ -585,154 +584,8 @@ def setup_callbacks(
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    )
-                    style_left = display_style
-                    style_right = hidden_style
-
-            # ------------------ (5) High-Impact Incidents ------------------
-            elif selected_viz == "plot_5_1":
-                # 5.1 Primary & secondary causes => group by (CAUSE_CATEGORY, CAUSE2_CATEGORY)
-                required_columns = ["CAUSE", "CAUSE2", "ACCDMG", "TOTINJ", "TOTKLD"]
-                if all(col in dff.columns for col in required_columns):
-                    # Define the outlier detection function
-                    def is_outlier(series):
-                        Q1 = series.quantile(0.25)
-                        Q3 = series.quantile(0.75)
-                        IQR = Q3 - Q1
-                        lower_bound = Q1 - 1.5 * IQR
-                        upper_bound = Q3 + 1.5 * IQR
-                        return (series < lower_bound) | (series > upper_bound)
-
-                    # Apply outlier detection for each relevant column
-                    outlier_damage = is_outlier(dff["ACCDMG"])
-                    outlier_injuries = is_outlier(dff["TOTINJ"])
-                    outlier_fatalities = is_outlier(dff["TOTKLD"])
-
-                    # Combine outlier conditions
-                    # Use logical OR (|) if you want to include incidents that are outliers in any one category
-                    # Use logical AND (&) if you want to include only incidents that are outliers in all categories
-                    outliers_condition = outlier_damage & outlier_injuries & outlier_fatalities  # Changed to OR
-
-                    # Filter the DataFrame to include only outliers
-                    dff_outliers = dff[outliers_condition].copy()
-
-                    # Map both primary and secondary causes to their categories
-                    dff_outliers["CAUSE_CATEGORY"] = dff_outliers["CAUSE"].map(cause_category_mapping).fillna("Unknown")
-                    dff_outliers["CAUSE2_CATEGORY"] = dff_outliers["CAUSE2"].map(cause_category_mapping).fillna(
-                        "Unknown")
-
-                    # Group by cause categories and compute counts
-                    grouped = dff_outliers.groupby(["CAUSE_CATEGORY", "CAUSE2_CATEGORY"]).size().reset_index(
-                        name="count")
-
-                    # Check if there are any outliers to plot
-                    if not grouped.empty:
-                        # Create the bar plot for outliers
-                        fig_left = px.bar(
-                            grouped,
-                            x="CAUSE_CATEGORY",
-                            y="count",
-                            color="CAUSE2_CATEGORY",
-                            barmode="group",
-                            title="(5.1) Primary vs. Secondary Cause Categories (High-Impact Incidents)",
-                            labels={
-                                "CAUSE_CATEGORY": "Primary Cause Category",
-                                "CAUSE2_CATEGORY": "Secondary Cause Category",
-                                "count": "Number of High-Impact Incidents",
-                            },
-                        )
-
-                        # Update the trace to adjust bar outline width
-                        fig_left.update_traces(
-                            marker=dict(
-                                line=dict(
-                                    width=0.3,  # Set the outline width here
-                                )
-                            )
-                        )
-
-                        # Calculate positions for vertical lines between primary cause categories
-                        primary_categories = sorted(dff_outliers["CAUSE_CATEGORY"].unique())
-                        number_of_primary = len(primary_categories)
-                        line_positions = [i + 0.5 for i in range(1, number_of_primary)]
-
-                        # Define vertical dotted lines
-                        new_shapes = []
-                        for pos in line_positions:
-                            new_shapes.append(dict(
-                                type='line',
-                                x0=pos,
-                                y0=0,
-                                x1=pos,
-                                y1=1,
-                                xref='x',
-                                yref='paper',
-                                line=dict(
-                                    color='white',  # Line color
-                                    width=1,  # Line width
-                                    dash='dot',  # Dash style
-                                )
-                            ))
-
-                        # Handle existing shapes
-                        existing_shapes = fig_left.layout.shapes or []  # Initialize as empty list if None
-
-                        # Convert existing_shapes to a list if it's a tuple
-                        if isinstance(existing_shapes, tuple):
-                            existing_shapes = list(existing_shapes)
-                        elif not isinstance(existing_shapes, list):
-                            existing_shapes = []
-
-                        # Concatenate existing shapes with new_shapes
-                        combined_shapes = existing_shapes + new_shapes
-
-                        # Update layout with combined shapes
-                        fig_left.update_layout(
-                            shapes=combined_shapes,
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            font_color="white",
-                        )
-                        style_left = display_style
-                        style_right = hidden_style
-                    else:
-                        # If no outliers are found, create an empty figure with a message
-                        fig_left = go.Figure()
-                        fig_left.add_annotation(
-                            x=0.5,
-                            y=0.5,
-                            text="No high-impact incidents detected based on the defined criteria.",
-                            showarrow=False,
-                            font=dict(color="white", size=14),
-                            xref="paper",
-                            yref="paper",
-                            align="center",
-                        )
-                        fig_left.update_layout(
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            font_color="white",
-                        )
-                        style_left = display_style
-                        style_right = hidden_style
-                else:
-                    # If required columns are missing, return an empty figure or a message
-                    fig_left = go.Figure()
-                    fig_left.add_annotation(
-                        x=0.5,
-                        y=0.5,
-                        text="Required columns for high-impact incident analysis are missing.",
-                        showarrow=False,
-                        font=dict(color="white", size=14),
-                        xref="paper",
-                        yref="paper",
-                        align="center",
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        font_color="white",
+                        margin=dict(t=100, l=20, r=20, b=20),
+                        font=dict(size=14, color="white"),
                     )
                     style_left = display_style
                     style_right = hidden_style
@@ -778,7 +631,7 @@ def setup_callbacks(
                         grouped,
                         path=["TYPE_LABEL", "CAUSE_CATEGORY", "CAUSE"],  # Hierarchical path
                         values="count",
-                        title="(5.2) Common Incident Types and Causes (Outliers by ACCDMG)",
+                        title="Common Incident Types and Causes (Outliers by ACCDMG)",
                         color="count",
                         color_continuous_scale="Blues",
                     )
@@ -794,41 +647,13 @@ def setup_callbacks(
                     )
 
                     fig_left.update_layout(
-                        margin=dict(t=100, l=0, r=0, b=0),
+                        margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
 
                 style_left = display_style
                 style_right = hidden_style
-
-            elif selected_viz == "plot_5_3":
-                # 5.3 Preventable factors => grouped by ACCAUSE categories
-                if "ACCAUSE" in dff.columns:
-                    # Map ACCAUSE to its categories
-                    dff["ACCAUSE_CATEGORY"] = dff["ACCAUSE"].map(cause_category_mapping).fillna("Unknown")
-                    # Summarize data by ACCAUSE_CATEGORY
-                    category_counts = dff["ACCAUSE_CATEGORY"].value_counts().reset_index()
-                    category_counts.columns = ["Cause Category", "Count"]
-                    # Create bar chart
-                    fig_left = px.bar(
-                        category_counts,
-                        x="Cause Category",
-                        y="Count",
-                        title="(5.3) Preventable Factors in High-Impact Incidents (Grouped by Categories)",
-                        labels={
-                            "Cause Category": "Cause Category",
-                            "Count": "Incident Count",
-                        },
-                    )
-                    # Update layout for better appearance
-                    fig_left.update_layout(
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        font_color="white",
-                    )
-                    style_left = display_style
-                    style_right = hidden_style
 
             # ------------------ (6) Summarizing Incident Characteristics ------------------
             elif selected_viz == "plot_6_1":
@@ -851,7 +676,7 @@ def setup_callbacks(
                         x="TYPE_LABEL",
                         y="count",
                         color="state_name",  # Use state_name to create the stacked effect
-                        title="(6.1) Most Common Incident Types by State",
+                        title="Most Common Incident Types by State",
                         labels={
                             "TYPE_LABEL": "Incident Type",
                             "count": "Count",
@@ -861,40 +686,11 @@ def setup_callbacks(
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                        margin=dict(t=100, l=20, r=20, b=20),
+                        font=dict(size=14, color="white"),
                     )
                     style_left = display_style
                     style_right = hidden_style
-
-            elif selected_viz == "plot_6_2":
-
-                # 6.2 Most frequently cited primary causes => grouped by CAUSE categories
-                if "CAUSE" in dff.columns:
-                    # Map CAUSE to its categories
-                    dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
-                    category_counts = dff["CAUSE_CATEGORY"].value_counts().nlargest(10).reset_index()
-                    category_counts.columns = ["Cause Category", "Count"]
-                    fig_left = px.bar(
-                        category_counts,
-                        x="Cause Category",
-                        y="Count",
-                        title="(6.2) Most Frequent Primary Causes (Grouped by Categories)",
-                        labels={
-                            "Cause Category": "Cause Category",
-                            "Count": "Incident Count",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
-                    ),
-                    style_left = display_style
-                    style_right = hidden_style
-
-
-
-
 
             elif selected_viz == "plot_6_3":
                 if "TYPE" in dff.columns and "ACCDMG" in dff.columns:
@@ -907,7 +703,7 @@ def setup_callbacks(
                             y="ACCDMG",
                             box=True,  # Adds a box inside the violin for additional stats
                             points="all",  # Show all points (including outliers)
-                            title="(6.3) Damage Distribution by Incident Type (Sampled Data)",
+                            title="Damage Distribution by Incident Type (Sampled Data)",
                             labels={
                                 "TYPE_LABEL": "Incident Type",
                                 "ACCDMG": "Damage Cost",
@@ -918,8 +714,8 @@ def setup_callbacks(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
                             font_color="white",
-                            margin=dict(l=50, r=50, t=50, b=50),  # Adjust margins
-                            autosize=True,  # Make the plot responsive
+                            margin=dict(t=100, l=20, r=20, b=20),
+                            font=dict(size=14, color="white"),
                         )
                         style_left = display_style  # Show the plot
                         style_right = hidden_style

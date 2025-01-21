@@ -62,25 +62,13 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
         },
         # ----- (5) High-Impact Incidents -----
         {
-            "label": "Primary & secondary causes of high-impact incidents?",
-            "value": "plot_5_1",
-        },
-        {
             "label": "Common circumstances in these severe incidents?",
             "value": "plot_5_2",
-        },
-        {
-            "label": "Preventable factors in high-impact incidents?",
-            "value": "plot_5_3",
         },
         # ----- (6) Summarizing Incident Characteristics -----
         {
             "label": "Most common types of railroad incidents?",
             "value": "plot_6_1",
-        },
-        {
-            "label": "Most frequently cited primary causes?",
-            "value": "plot_6_2",
         },
         {
             "label": "Avg damage cost among different incident types?",
