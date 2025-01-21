@@ -18,7 +18,8 @@ from GUI.plots import (
     DomainPlots,
     HeatMap,
     StreamGraph,
-    ParallelCategoriesPlot
+    ParallelCategoriesPlot,
+    WeatherHeatMap
 )
 
 
@@ -106,6 +107,7 @@ def setup_callbacks(
         elif trigger_id == "barchart" and bar_hover:
             return bar_hover["points"][0].get("label") or bar_hover["points"][0].get("x")
         return None
+
 
     @app.callback(
         [Output("crash-map", "figure"), Output("barchart", "figure")],
@@ -385,39 +387,85 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
+
+
+
+
             elif selected_viz == "plot_3_2":
                 if "WEATHER_LABEL" in dff.columns and "TOTINJ" in dff.columns:
-                    fig_left = px.box(
-                        dff,
-                        x="WEATHER_LABEL",
-                        y="TOTINJ",
-                        title="(3.2) Weather vs. Injuries",
-                        labels={
-                            "WEATHER_LABEL": "Weather Condition",
-                            "TOTINJ": "Total Injuries",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                    try:
+                        # Instantiate the WeatherHeatMap class
+                        heatmap_plotter = WeatherHeatMap(aliases=aliases, df=dff)
+                        # Generate the heatmap figure
+                        fig_left = heatmap_plotter.create()
+                        # Apply consistent styling
+                        fig_left.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font_color="white"
+                        )
+                        style_left = display_style
+                        style_right = hidden_style
+                    except Exception as e:
+                        # Fallback for errors
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the heatmap.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style
+                        style_right = hidden_style
+                else:
+                    # Fallback for missing required columns
+                    fig_left = go.Figure()
+                    fig_left.add_annotation(
+                        text="Required columns 'WEATHER_LABEL' and 'TOTINJ' are missing in the DataFrame.",
+                        showarrow=False,
+                        font=dict(size=16, color="white"),
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        align="center",
                     )
                     style_left = display_style
                     style_right = hidden_style
 
-            elif selected_viz == "plot_3_3":
-                needed = ["CAUSE", "CARS", "TOTINJ"]
 
+
+
+
+
+            elif selected_viz == "plot_3_3":
+                needed = ["CAUSE", "CARS", "TOTINJ", "TOTKLD", "EVACUATE"]
                 if all(n in dff.columns for n in needed):
+                    # Map causes to categories
                     dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
-                    grouped = dff.groupby("CAUSE_CATEGORY")[["CARS", "TOTINJ"]].sum().reset_index()
+                    # Group by cause category and aggregate additional factors
+                    grouped = dff.groupby("CAUSE_CATEGORY")[
+                        ["CARS", "TOTINJ", "TOTKLD", "EVACUATE"]].sum().reset_index()
+                    # Melt the grouped data for visualization
                     melted = grouped.melt(
                         id_vars=["CAUSE_CATEGORY"],
-                        value_vars=["CARS", "TOTINJ"],
+                        value_vars=["CARS", "TOTINJ", "TOTKLD", "EVACUATE"],
                         var_name="Factor",
                         value_name="Value",
                     )
-
+                    # Map factor names to more readable labels
+                    factor_labels = {
+                        "CARS": "Hazmat Cars Involved",
+                        "TOTINJ": "Total Injuries",
+                        "TOTKLD": "Total Fatalities",
+                        "EVACUATE": "Persons Evacuated",
+                    }
+                    melted["Factor"] = melted["Factor"].map(factor_labels)
+                    # Create the stacked bar chart
                     fig_left = px.bar(
                         melted,
                         x="CAUSE_CATEGORY",
@@ -439,6 +487,7 @@ def setup_callbacks(
                     )
                     style_left = display_style
                     style_right = hidden_style
+
 
             # ------------------ (4) Operator Performance ------------------
             elif selected_viz == "plot_4_1":
@@ -464,27 +513,37 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
+
             elif selected_viz == "plot_4_2":
                 # 4.2 Differences in incident types by operator => grouped bar
                 if "RAILROAD" in dff.columns and "TYPE_LABEL" in dff.columns:
+                    # Group data by railroad and type, and calculate the total count
                     grouped = (
                         dff.groupby(["RAILROAD", "TYPE_LABEL"])
                         .size()
                         .reset_index(name="count")
                     )
+                    # Compute the total count per railroad
+                    total_counts = grouped.groupby("RAILROAD")["count"].sum().reset_index()
+                    # Select the top 10 railroads by total count
+                    top_10_railroads = total_counts.nlargest(10, "count")["RAILROAD"]
+                    # Filter the grouped data to include only the top 10 railroads
+                    filtered_grouped = grouped[grouped["RAILROAD"].isin(top_10_railroads)]
+                    # Create the grouped bar chart
                     fig_left = px.bar(
-                        grouped,
+                        filtered_grouped,
                         x="RAILROAD",
                         y="count",
                         color="TYPE_LABEL",
                         barmode="group",
-                        title="(4.2) Incident Types by Railroad",
+                        title="(4.2) Incident Types by Top 10 Railroads",
                         labels={
                             "RAILROAD": "Reporting Railroad Code",
                             "TYPE_LABEL": "Incident Type",
                             "count": "Count",
                         },
                     )
+                    # Update layout for appearance
                     fig_left.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
@@ -492,6 +551,7 @@ def setup_callbacks(
                     )
                     style_left = display_style
                     style_right = hidden_style
+
 
             elif selected_viz == "plot_4_3":
                 # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
@@ -817,70 +877,67 @@ def setup_callbacks(
                     style_right = hidden_style
 
 
+
+
+
             elif selected_viz == "plot_6_3":
-                # 6.3 Avg damage cost among different incident types => violin plot x=TYPE_LABEL, y=ACCDMG
-                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
-                    import numpy as np
-                    # Initialize the outlier column
-                    dff["is_outlier"] = False
-                    # Calculate IQR to find outliers for each TYPE_LABEL
-                    for label in dff["TYPE_LABEL"].unique():
-                        # Filter the group and drop NaN values
-                        group = dff[dff["TYPE_LABEL"] == label].dropna(subset=["ACCDMG"])
-                        # Skip empty groups after filtering NaNs
-                        if group.empty:
-                            continue
-                        # Calculate Q1, Q3, and IQR
-                        Q1 = np.percentile(group["ACCDMG"], 25)
-                        Q3 = np.percentile(group["ACCDMG"], 75)
-                        IQR = Q3 - Q1
-                        lower_bound = Q1 - 1.5 * IQR
-                        upper_bound = Q3 + 1.5 * IQR
-                        # Mark non-outliers
-                        dff.loc[group.index, "is_outlier"] = ~(
-                                (group["ACCDMG"] < lower_bound) | (group["ACCDMG"] > upper_bound)
+                if "TYPE" in dff.columns and "ACCDMG" in dff.columns:
+                    try:
+                        sampled_df = dff.sample(frac=0.1, random_state=42)  # Use a subset of the data
+                        # Create violin plot without filtering out outliers
+                        fig_left = px.violin(
+                            sampled_df,
+                            x="TYPE_LABEL",
+                            y="ACCDMG",
+                            box=True,  # Adds a box inside the violin for additional stats
+                            points="all",  # Show all points (including outliers)
+                            title="(6.3) Damage Distribution by Incident Type (Sampled Data)",
+                            labels={
+                                "TYPE_LABEL": "Incident Type",
+                                "ACCDMG": "Damage Cost",
+                            },
                         )
-                    # Create two subsets: outliers and non-outliers
-                    non_outliers = dff[dff["is_outlier"]]
-                    outliers = dff[~dff["is_outlier"]]
-                    # Plot with outliers (style_left)
-                    fig_left = px.violin(
-                        dff,
-                        x="TYPE_LABEL",
-                        y="ACCDMG",
-                        box=True,
-                        points="all",  # Show all points, including outliers
-                        title="(6.3) Damage Distribution by Incident Type (With Outliers)",
-                        labels={
-                            "TYPE_LABEL": "Incident Type",
-                             "ACCDMG": "Damage Cost",
-                        },
-                    )
-                    # Plot without outliers (style_right)
-                    fig_right = px.violin(
-                        non_outliers,
-                        x="TYPE_LABEL",
-                        y="ACCDMG",
-                        box=True,
-                        points="all",  # Show only non-outlier points
-                        title="(6.3) Damage Distribution by Incident Type (Without Outliers)",
-                        labels={
-                            "TYPE_LABEL": "Incident Type",
-                            "ACCDMG": "Damage Cost",
-                        },
-                    )
-                    # Update layouts for both figures
-                    for fig in [fig_left, fig_right]:
-                        fig.update_layout(
+                        # Update layout for better aesthetics and responsive design
+                        fig_left.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
                             font_color="white",
+                            margin=dict(l=50, r=50, t=50, b=50),  # Adjust margins
+                            autosize=True,  # Make the plot responsive
                         )
-                    # Assign styles
-                    style_left = display_style  # With outliers
-                    style_right = display_style
-
-
+                        style_left = display_style  # Show the plot
+                        style_right = hidden_style
+                    except Exception as e:
+                        print(f"Error processing plot_6_3: {e}")
+                        # Return an empty figure with an error message annotation
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the plot.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style  # Still display the error message
+                        style_right = hidden_style
+                else:
+                    # Fallback for missing columns
+                    fig_left = go.Figure()
+                    fig_left.add_annotation(
+                        text="Required columns 'TYPE' and 'ACCDMG' are missing in the DataFrame.",
+                        showarrow=False,
+                        font=dict(size=16, color="white"),
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        align="center",
+                    )
+                    style_left = display_style
+                    style_right = hidden_style
 
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
