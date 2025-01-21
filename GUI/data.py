@@ -75,7 +75,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
 
     # Add city data
     city_data = pd.read_csv('data/city_data.csv', delimiter=',', low_memory=False)
-    city_data = city_data[city_data['population'] > 100000]
+    city_data = city_data[city_data['population'] > 50000]
 
     # Add crossing data
     crossing_data = pd.read_csv('data/crossing_data_rerevised.csv', delimiter=',', low_memory=False)

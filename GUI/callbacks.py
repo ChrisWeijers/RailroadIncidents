@@ -159,9 +159,6 @@ def setup_callbacks(
 
         # Add city data if the "show-cities" checkbox is checked
         if "show" in show_cities:
-            initial_marker_size = 1  # Start with a small visible size
-            growth_factor = 1.5  # Adjust growth based on zoom
-            marker_size = max(1, initial_marker_size + current_zoom * growth_factor)
             fig_map.add_trace(
                 px.scatter_mapbox(
                     city_data_filtered,
@@ -172,15 +169,12 @@ def setup_callbacks(
                 ).update_traces(
                     hovertemplate="<b>%{hovertext}</b><br>Population size: %{customdata}<extra></extra>",
                     customdata=city_data_filtered["population"],
-                    marker=dict(size=marker_size, color="yellow", symbol="circle", opacity=0.9),
+                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))), color="#FF00FF", symbol="circle", opacity=0.9),
                 ).data[0]
             )
 
         # Add crossing data if the "show-crossings" checkbox is checked
         if "show" in show_crossings:
-            initial_marker_size = 0.5  # Start with a small visible size
-            growth_factor = 1.5  # Adjust growth based on zoom
-            marker_size = max(1, initial_marker_size + current_zoom * growth_factor)
             fig_map.add_trace(
                 px.scatter_mapbox(
                     crossing_data_filtered,
@@ -197,7 +191,7 @@ def setup_callbacks(
                         "Crossing Illuminated": True,
                     },
                 ).update_traces(
-                    marker=dict(size=marker_size, color="red", symbol="circle", opacity=0.9),
+                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))), color="#00FF00", symbol="circle", opacity=0.9),
                     hovertemplate="<b>%{hovertext}</b><br>"  # Display city name at the top
                                   "Whistle Ban: %{customdata[0]}<br>"
                                   "Track Signaled: %{customdata[1]}<br>"
