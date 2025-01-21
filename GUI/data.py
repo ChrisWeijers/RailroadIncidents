@@ -78,7 +78,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     city_data = city_data[city_data['population'] > 100000]
 
     # Add crossing data
-    crossing_data = pd.read_csv('data/crossing_data_revised.csv', delimiter=',', low_memory=False)
+    crossing_data = pd.read_csv('data/crossing_data_rerevised.csv', delimiter=',', low_memory=False)
 
     # Ensure Latitude and Longitude are numeric
     crossing_data['Latitude'] = pd.to_numeric(crossing_data['Latitude'], errors='coerce')
@@ -88,7 +88,7 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     crossing_data = crossing_data.dropna(subset=['Latitude', 'Longitude'])
 
     # Limit the number of renderings due to dash computational limitations
-    if len(crossing_data) > 1000:
-        crossing_data = crossing_data.sample(n=1000, random_state=42)
+    if len(crossing_data) > 10000:
+        crossing_data = crossing_data.sample(n=10000, random_state=42)
 
     return df, states_center, state_count, us_states, states_alphabetical, df_map, city_data, crossing_data

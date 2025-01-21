@@ -158,6 +158,16 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
                                 value=[],
                                 style={"color": "white", "marginTop": "10px"},
                             ),
+                            html.Div(
+                                id="zoom-level-container",
+                                children=[
+                                    dcc.Store(
+                                        id="zoom-level", storage_type="memory", data=3  # Default zoom level
+                                    ),
+                                    html.Div("Adjust zoom dynamically!", className="zoom-helper"),
+                                ],
+                                style={"display": "none"},  # Hide or make visible as necessary
+                            ),
                         ],
                     ),
                     html.Div(

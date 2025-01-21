@@ -133,6 +133,9 @@ def setup_callbacks(
         # Basic horizontal bar chart
         bar = BarChart(df_filtered, states_center).create_barchart()
 
+        # Get current zoom level
+        current_zoom = manual_zoom["zoom"]
+
         # Highlight hovered state
         if hovered_state:
             us_map.highlight_state(hovered_state, "hoverstate")
@@ -140,6 +143,8 @@ def setup_callbacks(
         # Add points for selected states if any
         if not selected_states:
             us_map.add_points(df_filtered, "clickstate")
+            crossing_data_filtered = crossing_data
+            city_data_filtered = city_data
         else:
             us_map.highlight_state(selected_states, "clickstate")
 
@@ -149,48 +154,59 @@ def setup_callbacks(
             if len(selected_states) > 1:
                 bar = BarChart(filtered_states, states_center).create_barchart()
 
+        # Filter city and crossing data based on selected states
+            crossing_data_filtered = crossing_data[crossing_data["State Name"].isin(selected_states)]
+            city_data_filtered = city_data[city_data["state_name"].isin(selected_states)]
+
         # Add city data if the "show-cities" checkbox is checked
         if "show" in show_cities:
+            initial_marker_size = 1  # Start with a small visible size
+            growth_factor = 1.5  # Adjust growth based on zoom
+            marker_size = max(1, initial_marker_size + current_zoom * growth_factor)
             fig_map.add_trace(
                 px.scatter_mapbox(
-                    city_data,
+                    city_data_filtered,
                     lat="lat",
                     lon="lng",
                     hover_name="city",
                     hover_data={"lat": False, "lng": False, "population": True},
                 ).update_traces(
                     hovertemplate="<b>%{hovertext}</b><br>Population size: %{customdata}<extra></extra>",
-                    customdata=city_data["population"],
-                    marker=dict(size=10, color="cyan", symbol="circle", opacity=0.6),
+                    customdata=city_data_filtered["population"],
+                    marker=dict(size=marker_size, color="yellow", symbol="circle", opacity=0.9),
                 ).data[0]
             )
 
         # Add crossing data if the "show-crossings" checkbox is checked
         if "show" in show_crossings:
+            initial_marker_size = 0.5  # Start with a small visible size
+            growth_factor = 1.5  # Adjust growth based on zoom
+            marker_size = max(1, initial_marker_size + current_zoom * growth_factor)
             fig_map.add_trace(
                 px.scatter_mapbox(
-                    crossing_data,
+                    crossing_data_filtered,
                     lat="Latitude",
                     lon="Longitude",
-                    hover_name="Whistle Ban",  # Display "Whistle Ban" as the main label
+                    hover_name="City Name",  # Assuming City Name is a column in crossing_data
                     hover_data={
                         "Latitude": False,  # Hide latitude
                         "Longitude": False,  # Hide longitude
-                        "Track Signaled": True,  # Show if track is signaled
-                        "Number Of Bells": True,  # Show the number of bells
-                        "Traffic Lanes": True,  # Show the traffic lanes
-                        "Crossing Illuminated": True,  # Show if the crossing is illuminated
+                        "Whistle Ban": True,
+                        "Track Signaled": True,
+                        "Number Of Bells": True,
+                        "Traffic Lanes": True,
+                        "Crossing Illuminated": True,
                     },
                 ).update_traces(
-                    marker=dict(size=10, color="cyan", symbol="circle", opacity=0.6),
-                    # Style consistent with city points
-                    hovertemplate="<b>%{hovertext}</b><br>"
-                                  "Track Signaled: %{customdata[0]}<br>"
-                                  "Number Of Bells: %{customdata[1]}<br>"
-                                  "Traffic Lanes: %{customdata[2]}<br>"
-                                  "Crossing Illuminated: %{customdata[3]}<extra></extra>",
-                    customdata=crossing_data[
-                        ["Track Signaled", "Number Of Bells", "Traffic Lanes", "Crossing Illuminated"]
+                    marker=dict(size=marker_size, color="red", symbol="circle", opacity=0.9),
+                    hovertemplate="<b>%{hovertext}</b><br>"  # Display city name at the top
+                                  "Whistle Ban: %{customdata[0]}<br>"
+                                  "Track Signaled: %{customdata[1]}<br>"
+                                  "Number Of Bells: %{customdata[2]}<br>"
+                                  "Traffic Lanes: %{customdata[3]}<br>"
+                                  "Crossing Illuminated: %{customdata[4]}<extra></extra>",
+                    customdata=crossing_data_filtered[
+                        ["Whistle Ban", "Track Signaled", "Number Of Bells", "Traffic Lanes", "Crossing Illuminated"]
                     ].values,
                 ).data[0]
             )
