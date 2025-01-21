@@ -461,6 +461,69 @@ class HeatMap:
             font_color="white"
         )
         return fig
+class WeatherHeatMap:
+    """
+    Generates a heatmap for visualizing injuries across weather conditions.
+    """
+    def __init__(self, aliases: Dict[str, str], df: pd.DataFrame):
+        self.df = df
+        self.aliases = aliases
+
+    def create(self) -> go.Figure:
+        """
+        Creates a heatmap with weather conditions on the x-axis and injury bins on the y-axis.
+
+        Returns:
+            A Plotly Figure object.
+        """
+        dff = self.df
+
+        # Ensure required columns are present
+        if 'WEATHER_LABEL' not in dff.columns or 'TOTINJ' not in dff.columns:
+            raise ValueError("DataFrame must contain 'WEATHER_LABEL' and 'TOTINJ' columns.")
+
+        # Check for empty or missing data
+        if dff.empty or dff['WEATHER_LABEL'].isnull().all() or dff['TOTINJ'].isnull().all():
+            raise ValueError("No valid data in 'WEATHER_LABEL' or 'TOTINJ'.")
+
+        # Define bins for injuries
+        bins = [0, 1, 10, 20, 50, float('inf')]
+        bin_labels = ["0-1", "1-10", "10-20", "20-50", "50+"]
+        dff['INJURY_BIN'] = pd.cut(dff['TOTINJ'], bins=bins, labels=bin_labels, right=False)
+
+        # Group data by weather condition and injury bin
+        heatmap_data = dff.groupby(['WEATHER_LABEL', 'INJURY_BIN']).size().reset_index(name='COUNT')
+
+        # Pivot data for the heatmap
+        pivot_df = heatmap_data.pivot_table(
+            index='INJURY_BIN',
+            columns='WEATHER_LABEL',
+            values='COUNT',
+            fill_value=0
+        )
+
+        # Create heatmap using Plotly
+        fig = px.imshow(
+            pivot_df,
+            labels={
+                "x": "Weather Condition",
+                "y": "Injury Bins",
+                "color": "Count",
+            },
+            title="Heatmap of Injury Bins by Weather Condition",
+            color_continuous_scale=px.colors.sequential.Viridis,
+            zmin=10,  # Set minimum for better visibility of smaller counts
+            zmax=500  # Cap maximum to reduce dominance of extreme values
+        )
+
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color="white"
+        )
+        return fig
+
+
 
 
 class StreamGraph:
@@ -1480,16 +1543,18 @@ class DomainPlots:
 
     def plot_6_3_avg_damage_by_incident_types(self) -> go.Figure:
         """
-        6.3: Avg damage cost among different incident types => box x=TYPE, y=ACCDMG
+        6.3: Avg damage cost among different incident types => violin plot x=TYPE, y=ACCDMG
         """
         needed = ["TYPE", "ACCDMG"]
         if not all(n in self.df.columns for n in needed):
             return go.Figure()
 
-        fig = px.box(
+        fig = px.violin(
             self.df,
             x="TYPE",
             y="ACCDMG",
+            box=True,  # Adds a box plot inside the violin for additional information
+            points="all",  # Adds all data points
             title="6.3 Avg Damage by Incident Type",
             labels={
                 "TYPE": self.aliases.get("TYPE", "Incident Type"),
@@ -1499,7 +1564,9 @@ class DomainPlots:
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            font_color="white"
+            font_color="white",
+            width=1200,  # Adjust width to fit the available space
+            height=600  # Adjust height to fit the available space
         )
         return fig
 

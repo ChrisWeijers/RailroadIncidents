@@ -18,7 +18,8 @@ from GUI.plots import (
     DomainPlots,
     HeatMap,
     StreamGraph,
-    ParallelCategoriesPlot
+    ParallelCategoriesPlot,
+    WeatherHeatMap
 )
 
 
@@ -386,39 +387,85 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
+
+
+
+
             elif selected_viz == "plot_3_2":
                 if "WEATHER_LABEL" in dff.columns and "TOTINJ" in dff.columns:
-                    fig_left = px.box(
-                        dff,
-                        x="WEATHER_LABEL",
-                        y="TOTINJ",
-                        title="(3.2) Weather vs. Injuries",
-                        labels={
-                            "WEATHER_LABEL": "Weather Condition",
-                            "TOTINJ": "Total Injuries",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font_color="white"
+                    try:
+                        # Instantiate the WeatherHeatMap class
+                        heatmap_plotter = WeatherHeatMap(aliases=aliases, df=dff)
+                        # Generate the heatmap figure
+                        fig_left = heatmap_plotter.create()
+                        # Apply consistent styling
+                        fig_left.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font_color="white"
+                        )
+                        style_left = display_style
+                        style_right = hidden_style
+                    except Exception as e:
+                        # Fallback for errors
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the heatmap.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style
+                        style_right = hidden_style
+                else:
+                    # Fallback for missing required columns
+                    fig_left = go.Figure()
+                    fig_left.add_annotation(
+                        text="Required columns 'WEATHER_LABEL' and 'TOTINJ' are missing in the DataFrame.",
+                        showarrow=False,
+                        font=dict(size=16, color="white"),
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        align="center",
                     )
                     style_left = display_style
                     style_right = hidden_style
 
-            elif selected_viz == "plot_3_3":
-                needed = ["CAUSE", "CARS", "TOTINJ"]
 
+
+
+
+
+            elif selected_viz == "plot_3_3":
+                needed = ["CAUSE", "CARS", "TOTINJ", "TOTKLD", "EVACUATE"]
                 if all(n in dff.columns for n in needed):
+                    # Map causes to categories
                     dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
-                    grouped = dff.groupby("CAUSE_CATEGORY")[["CARS", "TOTINJ"]].sum().reset_index()
+                    # Group by cause category and aggregate additional factors
+                    grouped = dff.groupby("CAUSE_CATEGORY")[
+                        ["CARS", "TOTINJ", "TOTKLD", "EVACUATE"]].sum().reset_index()
+                    # Melt the grouped data for visualization
                     melted = grouped.melt(
                         id_vars=["CAUSE_CATEGORY"],
-                        value_vars=["CARS", "TOTINJ"],
+                        value_vars=["CARS", "TOTINJ", "TOTKLD", "EVACUATE"],
                         var_name="Factor",
                         value_name="Value",
                     )
-
+                    # Map factor names to more readable labels
+                    factor_labels = {
+                        "CARS": "Hazmat Cars Involved",
+                        "TOTINJ": "Total Injuries",
+                        "TOTKLD": "Total Fatalities",
+                        "EVACUATE": "Persons Evacuated",
+                    }
+                    melted["Factor"] = melted["Factor"].map(factor_labels)
+                    # Create the stacked bar chart
                     fig_left = px.bar(
                         melted,
                         x="CAUSE_CATEGORY",
@@ -440,6 +487,7 @@ def setup_callbacks(
                     )
                     style_left = display_style
                     style_right = hidden_style
+
 
             # ------------------ (4) Operator Performance ------------------
             elif selected_viz == "plot_4_1":
@@ -818,40 +866,33 @@ def setup_callbacks(
                     style_right = hidden_style
 
 
+
+
+
             elif selected_viz == "plot_6_3":
-                # 6.3 Avg damage cost among different incident types => violin plot x=TYPE_LABEL, y=ACCDMG without outliers
-                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
+                if "TYPE" in dff.columns and "ACCDMG" in dff.columns:
                     try:
-                        # Calculate IQR for each TYPE_LABEL using groupby
-                        q1 = dff.groupby("TYPE_LABEL")["ACCDMG"].transform(lambda x: x.quantile(0.25))
-                        q3 = dff.groupby("TYPE_LABEL")["ACCDMG"].transform(lambda x: x.quantile(0.75))
-                        iqr = q3 - q1
-                        # Compute bounds for outliers
-                        lower_bound = q1 - 1.5 * iqr
-                        upper_bound = q3 + 1.5 * iqr
-                        # Filter out the outliers
-                        non_outliers = dff[dff["ACCDMG"].between(lower_bound, upper_bound)]
-                        # Create violin plot without outliers=
+                        sampled_df = dff.sample(frac=0.1, random_state=42)  # Use a subset of the data
+                        # Create violin plot without filtering out outliers
                         fig_left = px.violin(
-                            non_outliers,
+                            sampled_df,
                             x="TYPE_LABEL",
                             y="ACCDMG",
-                            box=True,
-                            points="all",  # Show only non-outlier points
-                            title="(6.3) Damage Distribution by Incident Type (Without Outliers)",
+                            box=True,  # Adds a box inside the violin for additional stats
+                            points="all",  # Show all points (including outliers)
+                            title="(6.3) Damage Distribution by Incident Type (Sampled Data)",
                             labels={
                                 "TYPE_LABEL": "Incident Type",
                                 "ACCDMG": "Damage Cost",
                             },
                         )
-                        # Update layout for better aesthetics and set fixed width
+                        # Update layout for better aesthetics and responsive design
                         fig_left.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
                             font_color="white",
-                            width=800,  # Set the fixed width of the plot
-                            height=600,  # Set the fixed height of the plot
                             margin=dict(l=50, r=50, t=50, b=50),  # Adjust margins
+                            autosize=True,  # Make the plot responsive
                         )
                         style_left = display_style  # Show the plot
                         style_right = hidden_style
@@ -871,22 +912,21 @@ def setup_callbacks(
                         )
                         style_left = display_style  # Still display the error message
                         style_right = hidden_style
-                    except Exception as e:
-                        print(f"Error processing plot_6_3: {e}")
-                        # Return an empty figure with an error message annotation
-                        fig_left = go.Figure()
-                        fig_left.add_annotation(
-                            text="An error occurred while generating the plot.",
-                            showarrow=False,
-                            font=dict(size=16, color="white"),
-                            xref="paper",
-                            yref="paper",
-                            x=0.5,
-                            y=0.5,
-                            align="center",
-                        )
-                        style_left = display_style  # Still display the error message
-                        style_right = hidden_style
+                else:
+                    # Fallback for missing columns
+                    fig_left = go.Figure()
+                    fig_left.add_annotation(
+                        text="Required columns 'TYPE' and 'ACCDMG' are missing in the DataFrame.",
+                        showarrow=False,
+                        font=dict(size=16, color="white"),
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        align="center",
+                    )
+                    style_left = display_style
+                    style_right = hidden_style
 
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")

@@ -18,72 +18,72 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
     viz_options = [
         # ----- (1) Analyzing Temporal Trends -----
         {
-            "label": "1.1 Are total incidents increasing/decreasing over time?",
+            "label": "Are total incidents increasing/decreasing over time?",
             "value": "plot_1_1",
         },
         {
-            "label": "1.2 Which incident types show biggest changes over time?",
+            "label": "Which incident types show biggest changes over time?",
             "value": "plot_1_2",
         },
         {
-            "label": "1.3 Any noticeable seasonal patterns?",
+            "label": "Any noticeable seasonal patterns?",
             "value": "plot_1_3",
         },
         # ----- (2) Spatial Patterns -----
         {
-            "label": "2.1 Highest geographic concentration of incidents?",
+            "label": "Highest geographic concentration of incidents?",
             "value": "plot_2_1",
         },
         {
-            "label": "2.3 Distribution differences for various incident types?",
+            "label": "Distribution differences for various incident types?",
             "value": "plot_2_3",
         },
 
         {
-            "label": "3.2 How do these factors affect severity (damage, injuries)?",
+            "label": "How do these factors affect severity (damage, injuries)?",
             "value": "plot_3_2",
         },
         {
-            "label": "3.3 Specific factor combos that often precede incidents?",
+            "label": "Specific factor combos that often precede incidents?",
             "value": "plot_3_3",
         },
         # ----- (4) Operator Performance -----
         {
-            "label": "4.1 Compare overall incident rates across operators",
+            "label": "Compare overall incident rates across operators",
             "value": "plot_4_1",
         },
         {
-            "label": "4.2 Differences in incident types by operator",
+            "label": "Differences in incident types by operator",
             "value": "plot_4_2",
         },
         {
-            "label": "4.3 Which operator is higher/lower for specific incidents?",
+            "label": "Which operator is higher/lower for specific incidents?",
             "value": "plot_4_3",
         },
         # ----- (5) High-Impact Incidents -----
         {
-            "label": "5.1 Primary & secondary causes of high-impact incidents?",
+            "label": "Primary & secondary causes of high-impact incidents?",
             "value": "plot_5_1",
         },
         {
-            "label": "5.2 Common circumstances in these severe incidents?",
+            "label": "Common circumstances in these severe incidents?",
             "value": "plot_5_2",
         },
         {
-            "label": "5.3 Preventable factors in high-impact incidents?",
+            "label": "Preventable factors in high-impact incidents?",
             "value": "plot_5_3",
         },
         # ----- (6) Summarizing Incident Characteristics -----
         {
-            "label": "6.1 Most common types of railroad incidents?",
+            "label": "Most common types of railroad incidents?",
             "value": "plot_6_1",
         },
         {
-            "label": "6.2 Most frequently cited primary causes?",
+            "label": "Most frequently cited primary causes?",
             "value": "plot_6_2",
         },
         {
-            "label": "6.3 Avg damage cost among different incident types?",
+            "label": "Avg damage cost among different incident types?",
             "value": "plot_6_3",
         },
     ]
