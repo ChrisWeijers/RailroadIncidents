@@ -153,7 +153,7 @@ def setup_callbacks(
             if len(selected_states) > 1:
                 bar = BarChart(filtered_states, states_center).create_barchart()
 
-        # Filter city and crossing data based on selected states
+            # Filter city and crossing data based on selected states
             crossing_data_filtered = crossing_data[crossing_data["State Name"].isin(selected_states)]
             city_data_filtered = city_data[city_data["state_name"].isin(selected_states)]
 
@@ -169,7 +169,8 @@ def setup_callbacks(
                 ).update_traces(
                     hovertemplate="<b>%{hovertext}</b><br>Population size: %{customdata}<extra></extra>",
                     customdata=city_data_filtered["population"],
-                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))), color="#FF00FF", symbol="circle", opacity=0.9),
+                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))),
+                                color="#FF00FF", symbol="circle", opacity=0.9),
                 ).data[0]
             )
 
@@ -191,7 +192,8 @@ def setup_callbacks(
                         "Crossing Illuminated": True,
                     },
                 ).update_traces(
-                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))), color="#00FF00", symbol="circle", opacity=0.9),
+                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))),
+                                color="#00FF00", symbol="circle", opacity=0.9),
                     hovertemplate="<b>%{hovertext}</b><br>"  # Display city name at the top
                                   "Whistle Ban: %{customdata[0]}<br>"
                                   "Track Signaled: %{customdata[1]}<br>"
@@ -348,25 +350,22 @@ def setup_callbacks(
                 # 2.3 Distribution differences => Parallel Categories Plot with selectable states
                 if {"TYPE_LABEL", "ACCDMG", "WEATHER_LABEL", "TOTINJ", "TRNSPD", "state_name"}.issubset(dff.columns):
                     # Create bins for ACCDMG
-                    # Create bins for ACCDMG using quantiles
-                    dff["ACCDMG_Binned"] = pd.qcut(
-                        df["ACCDMG"],
-                        q=5,
-                        labels=["Very Low Damage", "Low Damage", "Moderate Damage", "High Damage", "Extreme Damage"]
-                    )
+
+                    bins_damage = [0, 1, 10000, 100000, 500000, df["ACCDMG"].max()]
+                    labels_damage = ["No Damage", "1-10.000 $", "10.000-100.000 $", "100.000-500.000 $", "500.000+ $"]
+                    dff["ACCDMG_Binned"] = pd.cut(dff["ACCDMG"], bins=bins_damage, labels=labels_damage,
+                                                  include_lowest=True)
 
                     # Create bins for Injuries
-                    bins_injuries = [0, 0.1, 1, 10, 20, df["ACCDMG"].max()]
+                    bins_injuries = [0, 0.1, 1, 10, 20, df["TOTINJ"].max()]
                     labels_injuries = ["No Injuries", "0-1 Injuries", "1-10 Injuries", "11-20 Injuries", "21+ Injuries"]
                     dff["Injuries_Binned"] = pd.cut(dff["TOTINJ"], bins=bins_injuries, labels=labels_injuries,
                                                     include_lowest=True)
 
-                    # Create bins for TRNSPD using quantiles
-                    dff["TRNSPD_Binned"] = pd.qcut(
-                        df["TRNSPD"],
-                        q=5,
-                        labels=["Very Slow", "Slow", "Moderate", "Fast", "Very Fast"]
-                    )
+                    bins_damage = [0, 1, 10, 20, 50, 100, df["TRNSPD"].max()]
+                    labels_damage = ["0 MPH", "1-10 MPH", "10-20 MPH", "20-50 MPH", "50-100 MPH", "100+ MPH"]
+                    dff["TRNSPD_Binned"] = pd.cut(dff["TRNSPD"], bins=bins_damage, labels=labels_damage,
+                                                  include_lowest=True)
                     # Assign explicit colors dynamically based on selected states
                     dff["state_color"] = dff["state_name"].apply(
                         lambda x: "#FF0000" if x in selected_states else "#0000FF"  # Red for selected, Blue for others
@@ -561,28 +560,60 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
-
             elif selected_viz == "plot_4_3":
-                # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
-                if "RAILROAD" in dff.columns and "ACCDMG" in dff.columns:
-                    fig_left = px.box(
-                        dff,
-                        x="RAILROAD",
-                        y="ACCDMG",
-                        title="Damage by Railroad",
-                        labels={
-                            "RAILROAD": "Reporting Railroad Code",
-                            "ACCDMG": "Total Damage Cost",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=100, l=20, r=20, b=20),
-                        font=dict(size=14, color="white"),
-                    )
-                    style_left = display_style
-                    style_right = hidden_style
+                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
+                    try:
+                        # Calculate the top 10 incident types by count
+                        top_10_types = (
+                            dff["TYPE_LABEL"]
+                            .value_counts()
+                            .nlargest(10)
+                            .index
+                        )
+                        # Filter the data to include only the top 10 types
+                        filtered_dff = dff[dff["TYPE_LABEL"].isin(top_10_types)]
+                        # Sample the filtered data for better performance
+                        sampled_df = filtered_dff.sample(frac=0.1, random_state=42)  # 10% sampling
+                        # Create a violin plot
+                        fig_left = px.violin(
+                            sampled_df,
+                            x="TYPE_LABEL",
+                            y="ACCDMG",
+                            box=True,  # Adds a box inside the violin for additional stats
+                            points="all",  # Show all points (including outliers)
+                            title="Damage Distribution by Top 10 Incident Types (Sampled Data)",
+                            labels={
+                                "TYPE_LABEL": "Incident Type",
+                                "ACCDMG": "Damage Cost",
+                            },
+                        )
+                        # Update layout for aesthetics
+                        fig_left.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                            margin=dict(t=100, l=20, r=20, b=20),
+                            font=dict(size=14, color="white"),
+                        )
+                        style_left = display_style  # Show the plot
+                        style_right = hidden_style
+
+                    except Exception as e:
+                        print(f"Error processing plot_6_3: {e}")
+                        # Return an empty figure with an error message annotation
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the plot.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style  # Still display the error message
+                        style_right = hidden_style
 
             elif selected_viz == "plot_5_2":
 
