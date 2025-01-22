@@ -58,7 +58,7 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
             "value": "plot_4_2",
         },
         {
-            "label": "Operator Performance - Incident Type Rankings (Box Plot)",
+            "label": "Operator Performance - Incident Type Rankings (Violin Plot)",
             "value": "plot_4_3",
         },
         # ----- (5) High-Impact Incidents -----
