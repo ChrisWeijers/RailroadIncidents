@@ -564,7 +564,7 @@ def setup_callbacks(
                             y="ACCDMG",
                             box=True,  # Adds a box inside the violin for additional stats
                             points="all",  # Show all points (including outliers)
-                            title="Damage Distribution by Top 10 Incident Types (Sampled Data)",
+                            title="Damage Distribution by Top 10 Incident Types",
                             labels={
                                 "TYPE_LABEL": "Incident Type",
                                 "ACCDMG": "Damage Cost",
@@ -639,7 +639,7 @@ def setup_callbacks(
                         grouped,
                         path=["TYPE_LABEL", "CAUSE_CATEGORY", "CAUSE"],  # Hierarchical path
                         values="count",
-                        title="Common Incident Types and Causes (Outliers by ACCDMG)",
+                        title="Common Incident Types and Causes",
                         color="count",
                         color_continuous_scale="Blues",
                     )
@@ -712,7 +712,7 @@ def setup_callbacks(
                             y="ACCDMG",
                             box=True,  # Adds a box inside the violin for additional stats
                             points="all",  # Show all points (including outliers)
-                            title="Damage Distribution by Incident Type (Sampled Data)",
+                            title="Damage Distribution by Incident Type",
                             labels={
                                 "TYPE_LABEL": "Incident Type",
                                 "ACCDMG": "Damage Cost",
