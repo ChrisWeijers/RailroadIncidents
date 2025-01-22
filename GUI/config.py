@@ -1,5 +1,5 @@
 from GUI.data import get_data
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box, mapping
 
 df, states_center, state_count, us_states, states_alphabetical, df_map, city_data, crossing_data = get_data()
 
@@ -36,14 +36,6 @@ US_POLYGON = Polygon([
     (-179.15, 71.39)   # Close the loop
 ])
 
-from shapely.geometry import box, mapping
-from shapely.ops import unary_union
-
-# Define a bounding box for the entire map
 WORLD_BOUNDS = box(-180, -90, 180, 90)
-
-# Create the mask by subtracting the US polygon from the world bounds
 MASK_POLYGON = WORLD_BOUNDS.difference(US_POLYGON)
-
-# Convert the mask to GeoJSON format
 mask_geojson = mapping(MASK_POLYGON)
