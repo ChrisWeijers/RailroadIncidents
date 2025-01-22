@@ -509,6 +509,15 @@ class WeatherHeatMap:
             zmax=500
         )
 
+        # Custom hover template
+        fig.update_traces(
+            hovertemplate=(
+                "<b>Weather Condition</b>: %{x}<br>"
+                "<b>Injury Range</b>: %{y}<br>"
+                "<b>Total Incidents</b>: %{z}<extra></extra>"
+            )
+        )
+
         # Style configuration with axis labels
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
@@ -518,7 +527,15 @@ class WeatherHeatMap:
             yaxis_title="Injury Severity",      # Y-axis label
             margin=dict(t=40, b=20, l=60, r=20),
             xaxis_title_font=dict(size=14),
-            yaxis_title_font=dict(size=14)
+            yaxis_title_font=dict(size=14),
+            xaxis=dict(
+                ticktext=[self.aliases.get(col, col) for col in pivot_df.columns],
+                tickvals=pivot_df.columns
+            ),
+            yaxis=dict(
+                ticktext=[f"{bin} injuries" for bin in pivot_df.index],
+                tickvals=pivot_df.index
+            )
         )
 
         return fig
