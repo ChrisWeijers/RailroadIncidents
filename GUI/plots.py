@@ -500,11 +500,7 @@ class WeatherHeatMap:
         )
 
         # Group and sum incidents, then divide by 2
-        heatmap_data = (dff.groupby(['WEATHER_LABEL', 'INJURY_BIN'])
-                        .size()
-                        .reset_index(name='COUNT'))
-
-        heatmap_data['COUNT'] = heatmap_data['COUNT'] / 2
+        max_val = pivot_df.values.max() / 5
 
         # Create visualization
         fig = px.imshow(
@@ -513,7 +509,7 @@ class WeatherHeatMap:
             title="Injury Severity by Weather Condition",
             color_continuous_scale=px.colors.sequential.Viridis,
             zmin=10,
-            zmax=max(10, heatmap_data)
+            zmax=max(10, max_val)
         )
 
         # Custom hover template
