@@ -1,5 +1,6 @@
 from dash import html, dcc
 
+
 def create_layout(config: list, date_min, date_max, attributes, aliases, city_data) -> html.Div:
     """
     Generates the main layout for the Dash application.
@@ -158,21 +159,28 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
                             ),
                         ],
                     ),
-                    html.Div(
-                        className="content",
+                    dcc.Loading(
+                        id="loading-plot",
+                        type="circle",
+                        overlay_style={"visibility": "visible", "filter": "blur(2px)"},
+                        color='white',
+                        className='content',
                         children=[
-                            dcc.Graph(
-                                id="plot-left",
-                                className="content",
-                                style={"display": "none"},
-                            ),
                             html.Div(
-                                'No visualization selected. Choose a visualization in the dropdown...',
-                                id='plot-right',
-                                className='content',
-                            )
-                        ],
-                    ),
+                                className="content",
+                                id="visualization-container",
+                                children=[
+                                    html.Div(
+                                        'Oops! It seems like you haven’t selected a visualization. Pick one from the '
+                                        'to see the magic!',
+                                        id='no-viz-text',
+                                        className='content',
+                                        style={"textAlign": "center", "color": "gray", "fontSize": "16px"},
+                                    )
+                                ],
+                            ),
+                        ]
+                    )
                 ],
             ),
             dcc.Store(id="hovered-state", storage_type="memory"),

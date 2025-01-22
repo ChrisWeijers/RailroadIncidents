@@ -1,4 +1,4 @@
-from dash import Output, Input, State, callback_context
+from dash import Output, Input, State, callback_context, dcc, html
 import pandas as pd
 from typing import List, Dict, Any
 from GUI.alias import incident_types, weather, visibility, cause_category_mapping, fra_cause_codes
@@ -209,11 +209,7 @@ def setup_callbacks(
         return fig_map, bar
 
     @app.callback(
-        [
-            Output("plot-left", "figure"),
-            Output("plot-left", "style"),
-            Output("plot-right", "style"),
-        ],
+        Output("visualization-container", "children"),
         [
             Input("viz-dropdown", "value"),
             Input("range-slider", "value"),
@@ -221,12 +217,6 @@ def setup_callbacks(
         ],
     )
     def update_bottom_visual(selected_viz, selected_range, selected_states):
-        hidden_style = {"display": "none"}
-        display_style = {"display": "block"}
-
-        empty_fig = {}
-        fig_left = empty_fig
-        style_left, style_right = hidden_style, {"color": "white", 'fontSize': 25}
 
         # Filter data by corrected_year range
         dff = filter_by_range(df.copy(), selected_range)
@@ -242,7 +232,12 @@ def setup_callbacks(
         dff["VISIBLTY_LABEL"] = dff["VISIBLTY"].map(visibility).fillna(dff["VISIBLTY"])
         dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
         if not selected_viz:
-            return fig_left, style_left, style_right
+            return html.Div(
+                'Oops! It seems like you haven’t selected a visualization. Pick one from the dropdown to see the magic!',
+                id='no-viz-text',
+                className='content',
+                style={"textAlign": "center", "color": "gray", "fontSize": "16px"},
+            )
 
         try:
             # ------------------ (1) Temporal Trends ------------------
@@ -250,7 +245,7 @@ def setup_callbacks(
                 # 1.1 Are total incidents increasing/decreasing over time?
                 if "corrected_year" in dff.columns:
                     grouped = dff.groupby("DATE_M").size().reset_index(name="count_incidents")
-                    fig_left = px.line(
+                    fig = px.line(
                         grouped,
                         x="DATE_M",
                         y="count_incidents",
@@ -260,29 +255,25 @@ def setup_callbacks(
                             "count_incidents": "Incident Count",
                         },
                     )
-                    fig_left.update_traces(mode="lines+markers", line=dict(width=3))
-                    fig_left.update_layout(
+                    fig.update_traces(mode="lines+markers", line=dict(width=3))
+                    fig.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                     )
-                    style_left = display_style
-                    style_right = hidden_style
 
             elif selected_viz == "plot_1_2":
                 # 1.2 Which incident types show biggest changes over time?
                 stream_graph = StreamGraph(aliases, dff, incident_types)
-                fig_left = stream_graph.plot()
+                fig = stream_graph.plot()
 
-                fig_left.update_layout(
+                fig.update_layout(
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     margin=dict(t=100, l=20, r=20, b=20),
                     font=dict(size=14, color="white"),
                 )
-                style_left = display_style
-                style_right = hidden_style
 
             elif selected_viz == "plot_1_3":
                 # 1.3 Seasonal patterns => use the HeatMap class
@@ -290,15 +281,13 @@ def setup_callbacks(
                                           df=dff)
 
                 bin_size = 1
-                fig_left = heatmap_plotter.create(bin_size=bin_size, states=selected_states)
-                fig_left.update_layout(
+                fig = heatmap_plotter.create(bin_size=bin_size, states=selected_states)
+                fig.update_layout(
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     margin=dict(t=100, l=20, r=20, b=20),
                     font=dict(size=14, color="white"),
                 )
-                style_left = display_style
-                style_right = hidden_style
 
             # ------------------ (2) Spatial Patterns ------------------
             elif selected_viz == "plot_2_1":
@@ -325,7 +314,7 @@ def setup_callbacks(
                     )
 
                     # Create a sunburst chart
-                    fig_left = px.sunburst(
+                    fig = px.sunburst(
                         grouped,
                         path=["state_name", "TYPE_LABEL"],  # Hierarchical path
                         values="count",
@@ -333,18 +322,15 @@ def setup_callbacks(
                         color="count",
                         color_continuous_scale="Blues",
                     )
-                    fig_left.update_traces(
+                    fig.update_traces(
                         hovertemplate="<b>%{label}</b><br>Count: %{value}",
                     )
                     # Update layout for better aesthetics
-                    fig_left.update_layout(
+                    fig.update_layout(
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
-
-                    style_left = display_style
-                    style_right = hidden_style
 
             elif selected_viz == "plot_2_3":
                 # 2.3 Distribution differences => Parallel Categories Plot with selectable states
@@ -375,7 +361,7 @@ def setup_callbacks(
                                         "TRNSPD_Binned", "state_color"]
                     dff_filtered = dff[selected_columns]
                     # Create Parallel Categories Plot
-                    fig_left = px.parallel_categories(
+                    fig = px.parallel_categories(
                         dff_filtered,
                         dimensions=["TYPE_LABEL", "WEATHER_LABEL", "ACCDMG_Binned", "Injuries_Binned", "TRNSPD_Binned"],
                         color="state_color",  # Use the explicit color column
@@ -390,15 +376,12 @@ def setup_callbacks(
                         title="Damage Distribution by Incident Type, Weather, and Injuries",
                     )
                     # Update layout for aesthetics
-                    fig_left.update_layout(
+                    fig.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
                         margin=dict(t=100, l=150, r=50, b=20),
                         font=dict(size=14, color="white"),
                     )
-
-                    style_left = display_style
-                    style_right = hidden_style
 
             elif selected_viz == "plot_3_2":
                 if "WEATHER_LABEL" in dff.columns and "TOTINJ" in dff.columns:
@@ -406,20 +389,20 @@ def setup_callbacks(
                         # Instantiate the WeatherHeatMap class
                         heatmap_plotter = WeatherHeatMap(aliases=aliases, df=dff)
                         # Generate the heatmap figure
-                        fig_left = heatmap_plotter.create()
+                        fig = heatmap_plotter.create()
                         # Apply consistent styling
-                        fig_left.update_layout(
+                        fig.update_layout(
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
                             margin=dict(t=100, l=20, r=20, b=20),
                             font=dict(size=14, color="white"),
                         )
                         style_left = display_style
-                        style_right = hidden_style
+
                     except Exception as e:
                         # Fallback for errors
-                        fig_left = go.Figure()
-                        fig_left.add_annotation(
+                        fig = go.Figure()
+                        fig.add_annotation(
                             text="An error occurred while generating the heatmap.",
                             showarrow=False,
                             font=dict(size=16, color="white"),
@@ -429,12 +412,12 @@ def setup_callbacks(
                             y=0.5,
                             align="center",
                         )
-                        style_left = display_style
-                        style_right = hidden_style
+
+
                 else:
                     # Fallback for missing required columns
-                    fig_left = go.Figure()
-                    fig_left.add_annotation(
+                    fig = go.Figure()
+                    fig.add_annotation(
                         text="Required columns 'WEATHER_LABEL' and 'TOTINJ' are missing in the DataFrame.",
                         showarrow=False,
                         font=dict(size=16, color="white"),
@@ -444,8 +427,8 @@ def setup_callbacks(
                         y=0.5,
                         align="center",
                     )
-                    style_left = display_style
-                    style_right = hidden_style
+
+
 
             elif selected_viz == "plot_3_3":
                 needed = ["CAUSE", "CARS", "TOTINJ", "TOTKLD", "EVACUATE"]
@@ -471,7 +454,7 @@ def setup_callbacks(
                     }
                     melted["Factor"] = melted["Factor"].map(factor_labels)
                     # Create the stacked bar chart
-                    fig_left = px.bar(
+                    fig = px.bar(
                         melted,
                         x="CAUSE_CATEGORY",
                         y="Value",
@@ -485,14 +468,14 @@ def setup_callbacks(
                         },
                     )
                     # Update layout for appearance
-                    fig_left.update_layout(
+                    fig.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                     )
-                    style_left = display_style
-                    style_right = hidden_style
+
+
 
 
             # ------------------ (4) Operator Performance ------------------
@@ -501,7 +484,7 @@ def setup_callbacks(
                 if "RAILROAD" in dff.columns:
                     rr_counts = dff["RAILROAD"].value_counts().nlargest(10).reset_index()
                     rr_counts.columns = ["RAILROAD", "count"]
-                    fig_left = px.bar(
+                    fig = px.bar(
                         rr_counts,
                         x="RAILROAD",
                         y="count",
@@ -511,14 +494,14 @@ def setup_callbacks(
                             "count": "Count",
                         },
                     )
-                    fig_left.update_layout(
+                    fig.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                     )
-                    style_left = display_style
-                    style_right = hidden_style
+
+
 
 
             elif selected_viz == "plot_4_2":
@@ -537,7 +520,7 @@ def setup_callbacks(
                     # Filter the grouped data to include only the top 10 railroads
                     filtered_grouped = grouped[grouped["RAILROAD"].isin(top_10_railroads)]
                     # Create the grouped bar chart
-                    fig_left = px.bar(
+                    fig = px.bar(
                         filtered_grouped,
                         x="RAILROAD",
                         y="count",
@@ -551,14 +534,14 @@ def setup_callbacks(
                         },
                     )
                     # Update layout for appearance
-                    fig_left.update_layout(
+                    fig.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                     )
-                    style_left = display_style
-                    style_right = hidden_style
+
+
 
             elif selected_viz == "plot_4_3":
                 if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
@@ -575,7 +558,7 @@ def setup_callbacks(
                         # Sample the filtered data for better performance
                         sampled_df = filtered_dff.sample(frac=0.1, random_state=42)  # 10% sampling
                         # Create a violin plot
-                        fig_left = px.violin(
+                        fig = px.violin(
                             sampled_df,
                             x="TYPE_LABEL",
                             y="ACCDMG",
@@ -588,21 +571,21 @@ def setup_callbacks(
                             },
                         )
                         # Update layout for aesthetics
-                        fig_left.update_layout(
+                        fig.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
                             font_color="white",
                             margin=dict(t=100, l=20, r=20, b=20),
                             font=dict(size=14, color="white"),
                         )
-                        style_left = display_style  # Show the plot
-                        style_right = hidden_style
+                        # Show the plot
+
 
                     except Exception as e:
                         print(f"Error processing plot_6_3: {e}")
                         # Return an empty figure with an error message annotation
-                        fig_left = go.Figure()
-                        fig_left.add_annotation(
+                        fig = go.Figure()
+                        fig.add_annotation(
                             text="An error occurred while generating the plot.",
                             showarrow=False,
                             font=dict(size=16, color="white"),
@@ -612,8 +595,8 @@ def setup_callbacks(
                             y=0.5,
                             align="center",
                         )
-                        style_left = display_style  # Still display the error message
-                        style_right = hidden_style
+                        # Still display the error message
+
 
             elif selected_viz == "plot_5_2":
 
@@ -652,7 +635,7 @@ def setup_callbacks(
                         .reset_index(name="count")
                     )
 
-                    fig_left = px.sunburst(
+                    fig = px.sunburst(
                         grouped,
                         path=["TYPE_LABEL", "CAUSE_CATEGORY", "CAUSE"],  # Hierarchical path
                         values="count",
@@ -661,7 +644,7 @@ def setup_callbacks(
                         color_continuous_scale="Blues",
                     )
 
-                    fig_left.update_traces(
+                    fig.update_traces(
                         hovertemplate=(
                             "<b>%{label}</b><br>"
                             "Count: %{value}<br>"
@@ -671,14 +654,15 @@ def setup_callbacks(
                         customdata=grouped["CAUSE_INFO"],
                     )
 
-                    fig_left.update_layout(
+                    fig.update_layout(
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
 
-                style_left = display_style
-                style_right = hidden_style
+
+
+
 
             # ------------------ (6) Summarizing Incident Characteristics ------------------
             elif selected_viz == "plot_6_1":
@@ -696,7 +680,7 @@ def setup_callbacks(
                     type_state_counts = type_state_counts[type_state_counts["TYPE_LABEL"].isin(top_types)]
 
                     # Create a stacked bar chart
-                    fig_left = px.bar(
+                    fig = px.bar(
                         type_state_counts,
                         x="TYPE_LABEL",
                         y="count",
@@ -708,21 +692,21 @@ def setup_callbacks(
                             "state_name": "State",
                         },
                     )
-                    fig_left.update_layout(
+                    fig.update_layout(
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                     )
-                    style_left = display_style
-                    style_right = hidden_style
+
+
 
             elif selected_viz == "plot_6_3":
                 if "TYPE" in dff.columns and "ACCDMG" in dff.columns:
                     try:
                         sampled_df = dff.sample(frac=0.1, random_state=42)  # Use a subset of the data
                         # Create violin plot without filtering out outliers
-                        fig_left = px.violin(
+                        fig = px.violin(
                             sampled_df,
                             x="TYPE_LABEL",
                             y="ACCDMG",
@@ -735,20 +719,20 @@ def setup_callbacks(
                             },
                         )
                         # Update layout for better aesthetics and responsive design
-                        fig_left.update_layout(
+                        fig.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
                             font_color="white",
                             margin=dict(t=100, l=20, r=20, b=20),
                             font=dict(size=14, color="white"),
                         )
-                        style_left = display_style  # Show the plot
-                        style_right = hidden_style
+                        # Show the plot
+
                     except Exception as e:
                         print(f"Error processing plot_6_3: {e}")
                         # Return an empty figure with an error message annotation
-                        fig_left = go.Figure()
-                        fig_left.add_annotation(
+                        fig = go.Figure()
+                        fig.add_annotation(
                             text="An error occurred while generating the plot.",
                             showarrow=False,
                             font=dict(size=16, color="white"),
@@ -758,12 +742,11 @@ def setup_callbacks(
                             y=0.5,
                             align="center",
                         )
-                        style_left = display_style  # Still display the error message
-                        style_right = hidden_style
+
                 else:
                     # Fallback for missing columns
-                    fig_left = go.Figure()
-                    fig_left.add_annotation(
+                    fig = go.Figure()
+                    fig.add_annotation(
                         text="Required columns 'TYPE' and 'ACCDMG' are missing in the DataFrame.",
                         showarrow=False,
                         font=dict(size=16, color="white"),
@@ -773,10 +756,17 @@ def setup_callbacks(
                         y=0.5,
                         align="center",
                     )
-                    style_left = display_style
-                    style_right = hidden_style
+
+
 
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
 
-        return fig_left, style_left, style_right
+        return dcc.Graph(
+            id="plot",
+            className="content",
+            config={"displayModeBar": False},
+            style={"width": "100%", "height": "400px"},  # Ensure consistent sizing
+            # Add your figure or data here:
+            figure=fig,  # Replace with the actual figure for the selected visualization
+        )
