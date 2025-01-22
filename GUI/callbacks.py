@@ -153,7 +153,7 @@ def setup_callbacks(
             if len(selected_states) > 1:
                 bar = BarChart(filtered_states, states_center).create_barchart()
 
-        # Filter city and crossing data based on selected states
+            # Filter city and crossing data based on selected states
             crossing_data_filtered = crossing_data[crossing_data["State Name"].isin(selected_states)]
             city_data_filtered = city_data[city_data["state_name"].isin(selected_states)]
 
@@ -169,7 +169,8 @@ def setup_callbacks(
                 ).update_traces(
                     hovertemplate="<b>%{hovertext}</b><br>Population size: %{customdata}<extra></extra>",
                     customdata=city_data_filtered["population"],
-                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))), color="#FF00FF", symbol="circle", opacity=0.9),
+                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))),
+                                color="#FF00FF", symbol="circle", opacity=0.9),
                 ).data[0]
             )
 
@@ -191,7 +192,8 @@ def setup_callbacks(
                         "Crossing Illuminated": True,
                     },
                 ).update_traces(
-                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))), color="#00FF00", symbol="circle", opacity=0.9),
+                    marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))),
+                                color="#00FF00", symbol="circle", opacity=0.9),
                     hovertemplate="<b>%{hovertext}</b><br>"  # Display city name at the top
                                   "Whistle Ban: %{customdata[0]}<br>"
                                   "Track Signaled: %{customdata[1]}<br>"
@@ -348,25 +350,22 @@ def setup_callbacks(
                 # 2.3 Distribution differences => Parallel Categories Plot with selectable states
                 if {"TYPE_LABEL", "ACCDMG", "WEATHER_LABEL", "TOTINJ", "TRNSPD", "state_name"}.issubset(dff.columns):
                     # Create bins for ACCDMG
-                    # Create bins for ACCDMG using quantiles
-                    dff["ACCDMG_Binned"] = pd.qcut(
-                        df["ACCDMG"],
-                        q=5,
-                        labels=["Very Low Damage", "Low Damage", "Moderate Damage", "High Damage", "Extreme Damage"]
-                    )
+
+                    bins_damage = [0, 1, 10000, 100000, 500000, df["ACCDMG"].max()]
+                    labels_damage = ["No Damage", "1-10.000 $", "10.000-100.000 $", "100.000-500.000 $", "500.000+ $"]
+                    dff["ACCDMG_Binned"] = pd.cut(dff["ACCDMG"], bins=bins_damage, labels=labels_damage,
+                                                  include_lowest=True)
 
                     # Create bins for Injuries
-                    bins_injuries = [0, 0.1, 1, 10, 20, df["ACCDMG"].max()]
+                    bins_injuries = [0, 0.1, 1, 10, 20, df["TOTINJ"].max()]
                     labels_injuries = ["No Injuries", "0-1 Injuries", "1-10 Injuries", "11-20 Injuries", "21+ Injuries"]
                     dff["Injuries_Binned"] = pd.cut(dff["TOTINJ"], bins=bins_injuries, labels=labels_injuries,
                                                     include_lowest=True)
 
-                    # Create bins for TRNSPD using quantiles
-                    dff["TRNSPD_Binned"] = pd.qcut(
-                        df["TRNSPD"],
-                        q=5,
-                        labels=["Very Slow", "Slow", "Moderate", "Fast", "Very Fast"]
-                    )
+                    bins_damage = [0, 1, 10, 20, 50, 100, df["TRNSPD"].max()]
+                    labels_damage = ["0 MPH", "1-10 MPH", "10-20 MPH", "20-50 MPH", "50-100 MPH", "100+ MPH"]
+                    dff["TRNSPD_Binned"] = pd.cut(dff["TRNSPD"], bins=bins_damage, labels=labels_damage,
+                                                  include_lowest=True)
                     # Assign explicit colors dynamically based on selected states
                     dff["state_color"] = dff["state_name"].apply(
                         lambda x: "#FF0000" if x in selected_states else "#0000FF"  # Red for selected, Blue for others
@@ -565,6 +564,7 @@ def setup_callbacks(
             elif selected_viz == "plot_4_3":
                 # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
                 if "RAILROAD" in dff.columns and "ACCDMG" in dff.columns:
+
                     fig_left = px.box(
                         dff,
                         x="RAILROAD",
