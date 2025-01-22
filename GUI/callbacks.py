@@ -560,29 +560,60 @@ def setup_callbacks(
                     style_left = display_style
                     style_right = hidden_style
 
-
             elif selected_viz == "plot_4_3":
-                # 4.3 which operator is higher/lower => box x=RAILROAD, y=ACCDMG
-                if "RAILROAD" in dff.columns and "ACCDMG" in dff.columns:
+                if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
+                    try:
+                        # Calculate the top 10 incident types by count
+                        top_10_types = (
+                            dff["TYPE_LABEL"]
+                            .value_counts()
+                            .nlargest(10)
+                            .index
+                        )
+                        # Filter the data to include only the top 10 types
+                        filtered_dff = dff[dff["TYPE_LABEL"].isin(top_10_types)]
+                        # Sample the filtered data for better performance
+                        sampled_df = filtered_dff.sample(frac=0.1, random_state=42)  # 10% sampling
+                        # Create a violin plot
+                        fig_left = px.violin(
+                            sampled_df,
+                            x="TYPE_LABEL",
+                            y="ACCDMG",
+                            box=True,  # Adds a box inside the violin for additional stats
+                            points="all",  # Show all points (including outliers)
+                            title="Damage Distribution by Top 10 Incident Types (Sampled Data)",
+                            labels={
+                                "TYPE_LABEL": "Incident Type",
+                                "ACCDMG": "Damage Cost",
+                            },
+                        )
+                        # Update layout for aesthetics
+                        fig_left.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font_color="white",
+                            margin=dict(t=100, l=20, r=20, b=20),
+                            font=dict(size=14, color="white"),
+                        )
+                        style_left = display_style  # Show the plot
+                        style_right = hidden_style
 
-                    fig_left = px.box(
-                        dff,
-                        x="RAILROAD",
-                        y="ACCDMG",
-                        title="Damage by Railroad",
-                        labels={
-                            "RAILROAD": "Reporting Railroad Code",
-                            "ACCDMG": "Total Damage Cost",
-                        },
-                    )
-                    fig_left.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=100, l=20, r=20, b=20),
-                        font=dict(size=14, color="white"),
-                    )
-                    style_left = display_style
-                    style_right = hidden_style
+                    except Exception as e:
+                        print(f"Error processing plot_6_3: {e}")
+                        # Return an empty figure with an error message annotation
+                        fig_left = go.Figure()
+                        fig_left.add_annotation(
+                            text="An error occurred while generating the plot.",
+                            showarrow=False,
+                            font=dict(size=16, color="white"),
+                            xref="paper",
+                            yref="paper",
+                            x=0.5,
+                            y=0.5,
+                            align="center",
+                        )
+                        style_left = display_style  # Still display the error message
+                        style_right = hidden_style
 
             elif selected_viz == "plot_5_2":
 
