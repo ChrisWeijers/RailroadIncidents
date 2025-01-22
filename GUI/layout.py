@@ -132,6 +132,7 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
                                 placeholder="Select a question/visualization",
                                 value=None,
                                 clearable=True,
+                                optionHeight=80,
                             ),
                             dcc.Checklist(
                                 id="show-cities",

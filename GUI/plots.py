@@ -496,7 +496,8 @@ class WeatherHeatMap:
             index='INJURY_BIN',
             columns='WEATHER_LABEL',
             values='COUNT',
-            fill_value=0
+            fill_value=0,
+            observed=False
         )
 
         # Group and sum incidents, then divide by 2

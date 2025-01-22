@@ -170,7 +170,7 @@ def setup_callbacks(
                     hovertemplate="<b>%{hovertext}</b><br>Population size: %{customdata}<extra></extra>",
                     customdata=city_data_filtered["population"],
                     marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))),
-                                color="#FF00FF", symbol="circle", opacity=0.9),
+                                color="#DC267F", symbol="circle", opacity=0.9),
                 ).data[0]
             )
 
@@ -193,7 +193,7 @@ def setup_callbacks(
                     },
                 ).update_traces(
                     marker=dict(size=max(5, min(20, 5 + (current_zoom * 1.5)) - (40 / (current_zoom + 3))),
-                                color="#00FF00", symbol="circle", opacity=0.9),
+                                color="#009E73", symbol="circle", opacity=0.9),
                     hovertemplate="<b>%{hovertext}</b><br>"  # Display city name at the top
                                   "Whistle Ban: %{customdata[0]}<br>"
                                   "Track Signaled: %{customdata[1]}<br>"
@@ -354,7 +354,7 @@ def setup_callbacks(
                                                   include_lowest=True)
                     # Assign explicit colors dynamically based on selected states
                     dff["state_color"] = dff["state_name"].apply(
-                        lambda x: "#FF0000" if x in selected_states else "#0000FF"  # Red for selected, Blue for others
+                        lambda x: "#FF0000" if x in selected_states else "#FF0000"  # Red for selected, Blue for others
                     )
                     # Filter and prepare data for PCP
                     selected_columns = ["TYPE_LABEL", "WEATHER_LABEL", "ACCDMG_Binned", "Injuries_Binned",
@@ -397,7 +397,6 @@ def setup_callbacks(
                             margin=dict(t=100, l=20, r=20, b=20),
                             font=dict(size=14, color="white"),
                         )
-                        style_left = display_style
 
                     except Exception as e:
                         # Fallback for errors
@@ -413,7 +412,6 @@ def setup_callbacks(
                             align="center",
                         )
 
-
                 else:
                     # Fallback for missing required columns
                     fig = go.Figure()
@@ -427,8 +425,6 @@ def setup_callbacks(
                         y=0.5,
                         align="center",
                     )
-
-
 
             elif selected_viz == "plot_3_3":
                 needed = ["CAUSE", "CARS", "TOTINJ", "TOTKLD", "EVACUATE"]
