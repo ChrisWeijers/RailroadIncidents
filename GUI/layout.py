@@ -18,60 +18,60 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
     viz_options = [
         # ----- (1) Analyzing Temporal Trends -----
         {
-            "label": "Time Trend - Total incidents timeline",
+            "label": "Time Trend - Total incidents timeline (Line Chart)",
             "value": "plot_1_1",
         },
         {
-            "label": "Time Trend - Incident types trends",
+            "label": "Time Trend - Incident types trends (Stream Graph)",
             "value": "plot_1_2",
         },
         {
-            "label": "Time Trend - Seasonal analysis",
+            "label": "Time Trend - Seasonal analysis (Heat Map)",
             "value": "plot_1_3",
         },
-        # ----- (2) Spatial Patterns -----
+        # ----- (2) Geographic Detail -----
         {
-            "label": "Spatial Patterns - Type Of Incident Per State",
+            "label": "Geographic Detail - Type Of Incident Per State (Sunburst Chart)",
             "value": "plot_2_1",
         },
         # ----- (3) Contributing Factors -----
         {
-            "label": "Contributing Factor - Damage Distribution With Multiple Factors",
+            "label": "Contributing Factor - Damage Distribution With Multiple Factors (Parallel Coordinate Plot)",
             "value": "plot_2_3",
         },
         {
-            "label": "Contributing Factor - Severity Impact",
+            "label": "Contributing Factor - Severity Impact (Heat Map)",
             "value": "plot_3_2",
         },
         {
-            "label": "Contributing Factor - Common Combinations",
+            "label": "Contributing Factor - Common Combinations (Stacked Bar Chart)",
             "value": "plot_3_3",
         },
         # ----- (4) Operator Performance -----
         {
-            "label": "Operator Performance - Incident Rate Comparison",
+            "label": "Operator Performance - Incident Rate Comparison (Bar Chart)",
             "value": "plot_4_1",
         },
         {
-            "label": "Operator Performance - Type Distribution",
+            "label": "Operator Performance - Type Distribution (Grouped Bar Chart)",
             "value": "plot_4_2",
         },
         {
-            "label": "Operator Performance - Incident Type Rankings",
+            "label": "Operator Performance - Incident Type Rankings (Box Plot)",
             "value": "plot_4_3",
         },
         # ----- (5) High-Impact Incidents -----
         {
-            "label": "High-Impact - Severity Triggers",
+            "label": "High Impact - Incident Codes (Sunburst Chart)",
             "value": "plot_5_2",
         },
         # ----- (6) Summarizing Incident Characteristics -----
         {
-            "label": "Incident Characteristics - Most Common Types",
+            "label": "Incident Characteristics - Most Common Types (Stacked Bar Chart)",
             "value": "plot_6_1",
         },
         {
-            "label": "Incident Characteristics - Damage Cost Analysis",
+            "label": "Incident Characteristics - Damage Cost Analysis (Violin Plot)",
             "value": "plot_6_3",
         },
     ]

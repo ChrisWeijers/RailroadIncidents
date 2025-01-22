@@ -451,8 +451,8 @@ class HeatMap:
         fig = px.imshow(
             pivot_df,
             labels=dict(x="Year Bin", y="Month", color="Incident Count"),
-            title=f"Heatmap of Total Incidents by Month and Year Bin (Bin Size: {bin_size} years)",
-            color_continuous_scale=px.colors.sequential.Viridis  # You can choose a different color scale
+            title=f"Heatmap of Total Incidents by Month and Year",
+            color_continuous_scale=px.colors.sequential.Viridis
         )
 
         fig.update_layout(
@@ -461,40 +461,37 @@ class HeatMap:
             font_color="white"
         )
         return fig
+
+
 class WeatherHeatMap:
     """
     Generates a heatmap for visualizing injuries across weather conditions.
     """
-    def __init__(self, aliases: Dict[str, str], df: pd.DataFrame):
+
+    def __init__(self, aliases: Dict[str, str], df: pd.DataFrame) -> None:
         self.df = df
         self.aliases = aliases
 
     def create(self) -> go.Figure:
         """
         Creates a heatmap with weather conditions on the x-axis and injury bins on the y-axis.
-
         Returns:
             A Plotly Figure object.
         """
         dff = self.df
 
-        # Ensure required columns are present
+        # Data validation checks
         if 'WEATHER_LABEL' not in dff.columns or 'TOTINJ' not in dff.columns:
             raise ValueError("DataFrame must contain 'WEATHER_LABEL' and 'TOTINJ' columns.")
-
-        # Check for empty or missing data
         if dff.empty or dff['WEATHER_LABEL'].isnull().all() or dff['TOTINJ'].isnull().all():
             raise ValueError("No valid data in 'WEATHER_LABEL' or 'TOTINJ'.")
 
-        # Define bins for injuries
+        # Bin injuries and prepare data
         bins = [0, 1, 10, 20, 50, float('inf')]
         bin_labels = ["0-1", "1-10", "10-20", "20-50", "50+"]
         dff['INJURY_BIN'] = pd.cut(dff['TOTINJ'], bins=bins, labels=bin_labels, right=False)
 
-        # Group data by weather condition and injury bin
         heatmap_data = dff.groupby(['WEATHER_LABEL', 'INJURY_BIN']).size().reset_index(name='COUNT')
-
-        # Pivot data for the heatmap
         pivot_df = heatmap_data.pivot_table(
             index='INJURY_BIN',
             columns='WEATHER_LABEL',
@@ -502,25 +499,28 @@ class WeatherHeatMap:
             fill_value=0
         )
 
-        # Create heatmap using Plotly
+        # Create visualization
         fig = px.imshow(
             pivot_df,
-            labels={
-                "x": "Weather Condition",
-                "y": "Injury Bins",
-                "color": "Count",
-            },
-            title="Heatmap of Injury Bins by Weather Condition",
+            labels={"color": "Incident Count"},
+            title="Injury Severity by Weather Condition",
             color_continuous_scale=px.colors.sequential.Viridis,
-            zmin=10,  # Set minimum for better visibility of smaller counts
-            zmax=500  # Cap maximum to reduce dominance of extreme values
+            zmin=10,
+            zmax=500
         )
 
+        # Style configuration with axis labels
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            font_color="white"
+            font_color="white",
+            xaxis_title="Weather Conditions",   # X-axis label
+            yaxis_title="Injury Severity",      # Y-axis label
+            margin=dict(t=40, b=20, l=60, r=20),
+            xaxis_title_font=dict(size=14),
+            yaxis_title_font=dict(size=14)
         )
+
         return fig
 
 
