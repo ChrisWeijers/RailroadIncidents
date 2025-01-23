@@ -471,9 +471,6 @@ def setup_callbacks(
                         font=dict(size=14, color="white"),
                     )
 
-
-
-
             # ------------------ (4) Operator Performance ------------------
             elif selected_viz == "plot_4_1":
                 # 4.1 Compare overall incident rates across operators => RAILROAD
@@ -496,9 +493,6 @@ def setup_callbacks(
                         margin=dict(t=100, l=20, r=20, b=20),
                         font=dict(size=14, color="white"),
                     )
-
-
-
 
             elif selected_viz == "plot_4_2":
                 # 4.2 Differences in incident types by operator => grouped bar
@@ -753,8 +747,6 @@ def setup_callbacks(
                         align="center",
                     )
 
-
-
         except Exception as e:
             print(f"Error creating visualization '{selected_viz}': {e}")
 
@@ -762,7 +754,6 @@ def setup_callbacks(
             id="plot",
             className="content",
             config={"displayModeBar": False},
-            style={"width": "100%", "height": "400px"},  # Ensure consistent sizing
-            # Add your figure or data here:
-            figure=fig,  # Replace with the actual figure for the selected visualization
+            style={"width": "100%", "height": "100%"},  # Ensure consistent sizing
+            figure=fig,
         )
