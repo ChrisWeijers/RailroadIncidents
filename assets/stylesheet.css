@@ -9,6 +9,8 @@ body, html {
     overflow-x: hidden;
 }
 
+
+
 /* width */
 ::-webkit-scrollbar {
   width: 10px;
@@ -67,8 +69,8 @@ body, html {
     background-color: #1e1e1e;
     padding: 10px; /* Padding inside the bottom section */
     gap: 10px;
+     position: relative;
  }
-
 
 
 /* Dropdown container for filters and controls */

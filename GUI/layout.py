@@ -163,9 +163,8 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
                     dcc.Loading(
                         id="loading-plot",
                         type="circle",
-                        overlay_style={"visibility": "visible", "filter": "blur(2px)"},
+                        overlay_style={"visibility": "visible", "filter": "blur(5px)"},
                         color='white',
-                        className='content',
                         children=[
                             html.Div(
                                 className="content",
