@@ -8,7 +8,7 @@ from GUI.data import get_data
 df, states_center, state_count, us_states, states_alphabetical, df_map, city_data, crossing_data = get_data()
 
 app = Dash(__name__)
-app.title = 'Railroad Dashboard'
+app.title = 'US Railroad Incidents'
 
 # App Layout
 app.layout = create_layout(config, date_min, date_max, attributes, aliases, city_data)
