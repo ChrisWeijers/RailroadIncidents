@@ -36,9 +36,6 @@ Sets up the interactive callbacks that connect the UI elements to the data. Resp
 `GUI/config.py`
 
 Holds global settings, including computed data range boundaries (e.g., min/max dates and attribute ranges) and a rough bounding polygon for the U.S.
-
-`GUI/alias.py`
-
 Provides dictionaries of aliases, groups, and any type mappings that help standardize naming conventions for attributes displayed in the UI.
 
 `assets/stylesheet.css`
