@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import geopandas as gpd
 from typing import Dict, Any, List, Optional
-from GUI.alias import US_POLYGON
+from GUI.config import US_POLYGON
 
 
 class Map:
@@ -12,11 +12,11 @@ class Map:
     """
 
     def __init__(
-        self,
-        df: pd.DataFrame,
-        us_states: Dict[str, Any],
-        state_count: pd.DataFrame,
-        manual_zoom: Dict[str, Any]
+            self,
+            df: pd.DataFrame,
+            us_states: Dict[str, Any],
+            state_count: pd.DataFrame,
+            manual_zoom: Dict[str, Any]
     ) -> None:
         """
         Initializes the Map object with necessary data and initial zoom settings.
@@ -124,7 +124,7 @@ class Map:
                 traces_to_remove.append(i)
 
         for i in reversed(traces_to_remove):
-            self.fig.data = self.fig.data[:i] + self.fig.data[i+1:]
+            self.fig.data = self.fig.data[:i] + self.fig.data[i + 1:]
 
         if df_state is not None and not df_state.empty:
             df_state = df_state.dropna(subset=['Latitude', 'Longitud'])
@@ -161,7 +161,7 @@ class Map:
             if trace.name == trace_name:
                 traces_to_remove.append(i)
         for i in reversed(traces_to_remove):
-            self.fig.data = self.fig.data[:i] + self.fig.data[i+1:]
+            self.fig.data = self.fig.data[:i] + self.fig.data[i + 1:]
 
         # Convert to list if single string
         if isinstance(hovered_state, str):
@@ -285,7 +285,7 @@ class HeatMap:
         bins = list(range(min_year, max_year + bin_size, bin_size))
         if len(bins) < 2:
             # Not enough range to create bins
-            bins = [min_year, min_year+1]
+            bins = [min_year, min_year + 1]
 
         labels = [f"{bins[i]}" for i in range(len(bins) - 1)]
         dff['year_bin'] = pd.cut(
@@ -315,7 +315,8 @@ class HeatMap:
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            font_color="white"
+            margin=dict(t=100, l=20, r=20, b=20),
+            font=dict(size=14, color="white"),
         )
         return fig
 
@@ -384,7 +385,9 @@ class StreamGraph:
             hoverlabel=dict(font_color="black", font_size=12, bgcolor="white"),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            font_color="white"
+            font_color="white",
+            margin=dict(t=100, l=20, r=20, b=20),
+            font=dict(size=14, color="white"),
         )
         return fig
 
@@ -426,9 +429,6 @@ class WeatherHeatMap:
             observed=False
         )
 
-        # Group and sum incidents, then divide by 2
-        max_val = pivot_df.values.max() / 5
-
         # Create visualization
         fig = px.imshow(
             pivot_df,
@@ -436,7 +436,7 @@ class WeatherHeatMap:
             title="Injury Severity by Weather Condition",
             color_continuous_scale=px.colors.sequential.Viridis,
             zmin=10,
-            zmax=max(10, max_val)
+            zmax=500
         )
 
         # Custom hover template
@@ -450,12 +450,12 @@ class WeatherHeatMap:
 
         # Style configuration with axis labels
         fig.update_layout(
+            margin=dict(t=100, l=20, r=20, b=20),
+            font=dict(size=14, color="white"),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            font_color="white",
-            xaxis_title="Weather Conditions",   # X-axis label
-            yaxis_title="Injury Severity",      # Y-axis label
-            margin=dict(t=40, b=20, l=60, r=20),
+            xaxis_title="Weather Conditions",  # X-axis label
+            yaxis_title="Injury Severity",  # Y-axis label
             xaxis_title_font=dict(size=14),
             yaxis_title_font=dict(size=14),
             xaxis=dict(
@@ -463,7 +463,7 @@ class WeatherHeatMap:
                 tickvals=pivot_df.columns
             ),
             yaxis=dict(
-                ticktext=[f"{bin} injuries" for bin in pivot_df.index],
+                ticktext=[f"{bin1} injuries" for bin1 in pivot_df.index],
                 tickvals=pivot_df.index
             )
         )
@@ -478,14 +478,16 @@ class CustomPlots:
     """
 
     def __init__(
-        self,
-        aliases: Dict[str, str],
-        df: pd.DataFrame,
-        selected_states: Optional[List[str]] = None
+            self,
+            aliases: Dict[str, str],
+            dff: pd.DataFrame,
+            df: pd.DataFrame,
+            selected_states: Optional[List[str]] = None,
     ):
         self.aliases = aliases
-        self.df = df
+        self.dff = dff
         self.selected_states = selected_states
+        self.df = df
 
     def plot_1_1(self) -> go.Figure:
         """
@@ -493,7 +495,7 @@ class CustomPlots:
         Group by 'DATE_M' and show a simple line chart of incident counts.
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
 
         if "corrected_year" in dff.columns and "DATE_M" in dff.columns:
             grouped = dff.groupby("DATE_M").size().reset_index(name="count_incidents")
@@ -527,33 +529,12 @@ class CustomPlots:
 
         return fig
 
-    def plot_1_2(self) -> go.Figure:
-        """
-        1.2 Which incident types show the biggest changes over time?
-        => A stream graph, but we created a separate StreamGraph class used in the callback.
-        We'll just return an empty figure if you want to handle it outside or inside.
-        """
-        # If you want to inline the stream graph logic, you could do so.
-        # Alternatively, in your callback you use:
-        #    stream_graph = StreamGraph(self.aliases, dff, incident_types)
-        #    fig = stream_graph.plot()
-        # Here we'll just return a blank or placeholder since you're calling StreamGraph externally.
-        return go.Figure()
-
-    def plot_1_3(self) -> go.Figure:
-        """
-        1.3 Seasonal patterns => uses the HeatMap class in the callback or we do it here?
-        """
-        # Similar logic to plot_1_2. If the callback calls HeatMap externally,
-        # we can just return an empty figure or handle it here.
-        return go.Figure()
-
     def plot_2_1(self) -> go.Figure:
         """
         2.1 Summarize top states + incident types with a sunburst.
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
 
         if "state_name" in dff.columns and "TYPE_LABEL" in dff.columns:
             top_states = (
@@ -607,7 +588,7 @@ class CustomPlots:
         2.3 Distribution differences => Parallel Categories Plot with selectable states
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
         if self.selected_states:
             dff = dff[dff["state_name"].isin(self.selected_states)]
 
@@ -623,21 +604,22 @@ class CustomPlots:
             return fig
 
         # Example: Binning logic
-        bins_damage = [0, 1, 10000, 100000, 500000, dff["ACCDMG"].max()]
+        bins_damage = [0, 1, 10000, 100000, 500000, self.df["ACCDMG"].max()]
         labels_damage = ["No Damage", "1-10.000 $", "10.000-100.000 $", "100.000-500.000 $", "500.000+ $"]
         dff["ACCDMG_Binned"] = pd.cut(dff["ACCDMG"], bins=bins_damage, labels=labels_damage, include_lowest=True)
 
-        bins_injuries = [0, 0.1, 1, 10, 20, dff["TOTINJ"].max()]
+        bins_injuries = [0, 0.1, 1, 10, 20, self.df["TOTINJ"].max()]
         labels_injuries = ["No Injuries", "0-1 Injuries", "1-10 Injuries", "11-20 Injuries", "21+ Injuries"]
-        dff["Injuries_Binned"] = pd.cut(dff["TOTINJ"], bins=bins_injuries, labels=labels_injuries, include_lowest=True)
+        dff["Injuries_Binned"] = pd.cut(self.df["TOTINJ"], bins=bins_injuries, labels=labels_injuries,
+                                        include_lowest=True)
 
-        bins_speed = [0, 1, 10, 20, 50, 100, dff["TRNSPD"].max()]
+        bins_speed = [0, 1, 10, 20, 50, 100, self.df["TRNSPD"].max()]
         labels_speed = ["0 MPH", "1-10 MPH", "10-20 MPH", "20-50 MPH", "50-100 MPH", "100+ MPH"]
-        dff["TRNSPD_Binned"] = pd.cut(dff["TRNSPD"], bins=bins_speed, labels=labels_speed, include_lowest=True)
+        dff["TRNSPD_Binned"] = pd.cut(self.df["TRNSPD"], bins=bins_speed, labels=labels_speed, include_lowest=True)
 
         # Assign explicit colors if needed
         dff["state_color"] = dff["state_name"].apply(
-            lambda x: "#FF0000" if x in (self.selected_states or []) else "#0000FF"
+            lambda x: "#FF0000" if x in (self.selected_states or []) else "#FF0000"
         )
 
         cols_for_plot = [
@@ -671,19 +653,12 @@ class CustomPlots:
         )
         return fig
 
-    def plot_3_2(self) -> go.Figure:
-        """
-        3.2 A Weather vs. Injuries style plot, but we rely on WeatherHeatMap externally.
-        """
-        # Return blank if you use WeatherHeatMap externally
-        return go.Figure()
-
     def plot_3_3(self) -> go.Figure:
         """
         3.3 Factor combos => stacked bar for [CARS, TOTINJ, TOTKLD, EVACUATE] by cause category
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
         needed = ["CAUSE", "CARS", "TOTINJ", "TOTKLD", "EVACUATE"]
         if not all(n in dff.columns for n in needed):
             fig.add_annotation(
@@ -731,7 +706,7 @@ class CustomPlots:
         4.1 Compare overall incident rates across operators => top 10 railroads
         """
         fig = go.Figure()
-        dff = self.df
+        dff = self.dff
         if "RAILROAD" not in dff.columns:
             fig.add_annotation(
                 text="Missing 'RAILROAD' column for plot_4_1",
@@ -764,7 +739,7 @@ class CustomPlots:
         4.2 Differences in incident types by operator => grouped bar
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
         if "RAILROAD" in dff.columns and "TYPE_LABEL" in dff.columns:
             grouped = dff.groupby(["RAILROAD", "TYPE_LABEL"]).size().reset_index(name="count")
             total_counts = grouped.groupby("RAILROAD")["count"].sum().reset_index()
@@ -805,7 +780,7 @@ class CustomPlots:
         4.3 A violin plot of ACCTDMG vs. TYPE_LABEL (top 10 types) or similar
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
         if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
             try:
                 top_10_types = dff["TYPE_LABEL"].value_counts().nlargest(10).index
@@ -860,7 +835,7 @@ class CustomPlots:
         needed = ["ACCDMG", "TYPE_LABEL", "CAUSE"]
 
         # Use self.df as the working DataFrame
-        dff = self.df.copy()
+        dff = self.dff.copy()
 
         # Ensure necessary columns exist
         if all(col in dff.columns for col in needed):
@@ -945,7 +920,7 @@ class CustomPlots:
         6.1 Most common incident types => stacked bar of state_name vs. TYPE_LABEL
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
         if "TYPE_LABEL" in dff.columns and "state_name" in dff.columns:
             type_state_counts = dff.groupby(["TYPE_LABEL", "state_name"]).size().reset_index(name="count")
             top_types = (
@@ -986,7 +961,7 @@ class CustomPlots:
         6.3 Damage distribution by incident type (violin).
         """
         fig = go.Figure()
-        dff = self.df.copy()
+        dff = self.dff.copy()
         if "TYPE_LABEL" in dff.columns and "ACCDMG" in dff.columns:
             try:
                 sampled_df = dff.sample(frac=0.1, random_state=42)

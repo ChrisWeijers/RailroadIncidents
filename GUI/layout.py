@@ -1,7 +1,7 @@
 from dash import html, dcc
 
 
-def create_layout(config: list, date_min, date_max) -> html.Div:
+def create_layout(config: list, date_min, date_max, viz_options) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
@@ -9,71 +9,11 @@ def create_layout(config: list, date_min, date_max) -> html.Div:
         config (list): List of states for the states-select dropdown.
         date_min (int): Minimum year for the range slider.
         date_max (int): Maximum year for the range slider.
+        viz_options (list(dict)): list of all visualization options for the dropdown.
 
     Returns:
         html.Div: The Dash application layout.
     """
-    # 18 items corresponding to each domain question
-    viz_options = [
-        # ----- (1) Analyzing Temporal Trends -----
-        {
-            "label": "Time Trend - Total incidents timeline (Line Chart)",
-            "value": "plot_1_1",
-        },
-        {
-            "label": "Time Trend - Incident types trends (Stream Graph)",
-            "value": "plot_1_2",
-        },
-        {
-            "label": "Time Trend - Seasonal analysis (Heat Map)",
-            "value": "plot_1_3",
-        },
-        # ----- (2) Geographic Detail -----
-        {
-            "label": "Geographic Detail - Type Of Incident Per State (Sunburst Chart)",
-            "value": "plot_2_1",
-        },
-        # ----- (3) Contributing Factors -----
-        {
-            "label": "Contributing Factor - Damage Distribution With Multiple Factors (Parallel Coordinate Plot)",
-            "value": "plot_2_3",
-        },
-        {
-            "label": "Contributing Factor - Severity Impact (Heat Map)",
-            "value": "plot_3_2",
-        },
-        {
-            "label": "Contributing Factor - Common Combinations (Stacked Bar Chart)",
-            "value": "plot_3_3",
-        },
-        # ----- (4) Operator Performance -----
-        {
-            "label": "Operator Performance - Incident Rate Comparison (Bar Chart)",
-            "value": "plot_4_1",
-        },
-        {
-            "label": "Operator Performance - Type Distribution (Grouped Bar Chart)",
-            "value": "plot_4_2",
-        },
-        {
-            "label": "Operator Performance - Incident Type Rankings (Violin Plot)",
-            "value": "plot_4_3",
-        },
-        # ----- (5) High-Impact Incidents -----
-        {
-            "label": "High Impact - Incident Codes (Sunburst Chart)",
-            "value": "plot_5_2",
-        },
-        # ----- (6) Summarizing Incident Characteristics -----
-        {
-            "label": "Incident Characteristics - Most Common Types (Stacked Bar Chart)",
-            "value": "plot_6_1",
-        },
-        {
-            "label": "Incident Characteristics - Damage Cost Analysis (Violin Plot)",
-            "value": "plot_6_3",
-        },
-    ]
 
     return html.Div(
         className="container",

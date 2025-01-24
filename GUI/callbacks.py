@@ -1,26 +1,17 @@
 from dash import Output, Input, State, callback_context, dcc, html
 import pandas as pd
 from typing import Dict, Any
-from GUI.alias import incident_types, weather, visibility, cause_category_mapping, fra_cause_codes
+from GUI.config import incident_types, weather, visibility, cause_category_mapping, fra_cause_codes
 import plotly.express as px
 import plotly.graph_objects as go
+from GUI.plots import Map, BarChart, HeatMap, StreamGraph, WeatherHeatMap, CustomPlots
 
-# Updated import: Only bring in the classes you actually use
-from GUI.plots import (
-    Map,
-    BarChart,
-    HeatMap,
-    StreamGraph,
-    WeatherHeatMap,
-    CustomPlots
-)
 
 def setup_callbacks(
         app,
         df: pd.DataFrame,
         state_count: pd.DataFrame,
         us_states: Dict[str, Any],
-        df_map: pd.DataFrame,
         states_center,
         aliases: Dict[str, str],
         city_data: pd.DataFrame,
@@ -64,9 +55,8 @@ def setup_callbacks(
         [Input("crash-map", "clickData"),
          Input("barchart", "clickData"),
          Input("states-select", "value")],
-        [State("selected-state", "data")],
     )
-    def handle_selection(map_click, bar_click, dropdown_selected, current_selected):
+    def handle_selection(map_click, bar_click, dropdown_selected):
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
 
@@ -87,7 +77,8 @@ def setup_callbacks(
 
     @app.callback(
         Output("hovered-state", "data"),
-        [Input("crash-map", "hoverData"), Input("barchart", "hoverData")],
+        [Input("crash-map", "hoverData"),
+         Input("barchart", "hoverData")],
     )
     def handle_hover(map_hover, bar_hover):
         ctx = callback_context
@@ -101,7 +92,8 @@ def setup_callbacks(
         return None
 
     @app.callback(
-        [Output("crash-map", "figure"), Output("barchart", "figure")],
+        [Output("crash-map", "figure"),
+         Output("barchart", "figure")],
         [
             Input("states-select", "value"),
             Input("hovered-state", "data"),
@@ -240,33 +232,19 @@ def setup_callbacks(
             )
 
         # Instantiate our helper class for all custom plots
-        custom_plots = CustomPlots(aliases, dff, selected_states)
+        custom_plots = CustomPlots(aliases, dff, df, selected_states)
 
         try:
             if selected_viz == "plot_1_1":
                 fig = custom_plots.plot_1_1()
 
             elif selected_viz == "plot_1_2":
-                # If you're using the StreamGraph class directly:
                 stream_graph = StreamGraph(aliases, dff, incident_types)
                 fig = stream_graph.plot()
-                fig.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(t=100, l=20, r=20, b=20),
-                    font=dict(size=14, color="white"),
-                )
 
             elif selected_viz == "plot_1_3":
-                # Using the HeatMap class
                 heatmap_plotter = HeatMap(aliases=aliases, df=dff)
                 fig = heatmap_plotter.create(bin_size=1, states=selected_states)
-                fig.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(t=100, l=20, r=20, b=20),
-                    font=dict(size=14, color="white"),
-                )
 
             elif selected_viz == "plot_2_1":
                 fig = custom_plots.plot_2_1()
@@ -276,15 +254,9 @@ def setup_callbacks(
 
             elif selected_viz == "plot_3_2":
                 try:
-                    # WeatherHeatMap
                     heatmap_plotter = WeatherHeatMap(aliases=aliases, df=dff)
                     fig = heatmap_plotter.create()
-                    fig.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=100, l=20, r=20, b=20),
-                        font=dict(size=14, color="white"),
-                    )
+
                 except Exception as e:
                     fig = go.Figure()
                     fig.add_annotation(

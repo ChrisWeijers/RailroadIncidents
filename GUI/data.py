@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 import json
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, Dict, Any
+
+from pandas import DataFrame
 
 
-def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any], List, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def get_data() -> tuple[DataFrame, DataFrame, Any, Any, list[Any], Any, DataFrame]:
     """
     Loads, cleans, and prepares the data for the Dash application.
 
@@ -18,6 +20,9 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
             - states_center (pd.DataFrame): DataFrame containing the latitude and longitude of the center of each state.
             - state_count (pd.DataFrame): DataFrame with crash counts per state.
             - us_states (Dict[str, Any]): A dictionary containing the US states GeoJSON data.
+            - states_alphabetical (List[str]): A list containing the US states in alphabetical order.
+            - city_data (pd.Dataframe): Dataframe containing data about cities in the US.
+            - crossing_data (pd.Dataframe): Dataframe containing data about railroad crossing in the US.
     """
     # Read data
     df = pd.read_csv('data/railroad_incidents_fixed.csv',
@@ -56,8 +61,6 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     df['state_name'] = df['state_name'].str.strip().str.title()
     states_center['Name'] = states_center['Name'].str.strip().str.title()
 
-    df_map = df.dropna(subset=['Latitude', 'Longitud'])
-
     # Load GeoJSON for US states
     with open('data/us-states.geojson', 'r') as geojson_file:
         us_states = json.load(geojson_file)
@@ -91,4 +94,4 @@ def get_data() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]
     if len(crossing_data) > 10000:
         crossing_data = crossing_data.sample(n=10000, random_state=42)
 
-    return df, states_center, state_count, us_states, states_alphabetical, df_map, city_data, crossing_data
+    return df, states_center, state_count, us_states, states_alphabetical, city_data, crossing_data
