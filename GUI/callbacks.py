@@ -1,10 +1,9 @@
 from dash import Output, Input, State, callback_context, dcc, html
 import pandas as pd
-from typing import List, Dict, Any
+from typing import Dict, Any
 from GUI.alias import incident_types, weather, visibility, cause_category_mapping, fra_cause_codes
 import plotly.express as px
 import plotly.graph_objects as go
-import numpy as np
 
 # Updated import: Only bring in the classes you actually use
 from GUI.plots import (

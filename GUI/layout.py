@@ -1,7 +1,7 @@
 from dash import html, dcc
 
 
-def create_layout(config: list, date_min, date_max, attributes, aliases, city_data) -> html.Div:
+def create_layout(config: list, date_min, date_max) -> html.Div:
     """
     Generates the main layout for the Dash application.
 
@@ -9,8 +9,6 @@ def create_layout(config: list, date_min, date_max, attributes, aliases, city_da
         config (list): List of states for the states-select dropdown.
         date_min (int): Minimum year for the range slider.
         date_max (int): Maximum year for the range slider.
-        attributes (list): Additional attributes if needed (placeholder).
-        aliases (dict): Aliases for advanced labeling (placeholder).
 
     Returns:
         html.Div: The Dash application layout.

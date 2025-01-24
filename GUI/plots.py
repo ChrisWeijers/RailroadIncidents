@@ -3,13 +3,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import geopandas as gpd
 from typing import Dict, Any, List, Optional
-import numpy as np
-from GUI.alias import cause_category_mapping, fra_cause_codes
-# If you need these from your config
-try:
-    from GUI.config import US_POLYGON
-except ImportError:
-    US_POLYGON = None
+from GUI.alias import US_POLYGON
 
 
 class Map:
