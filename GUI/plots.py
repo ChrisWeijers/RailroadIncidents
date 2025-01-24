@@ -54,7 +54,7 @@ class Map:
         """
         self.fig = go.Figure()
 
-        # Color states by crash_count
+        # Create map of US with states and their belonging crash count
         self.fig.add_trace(
             go.Choroplethmapbox(
                 geojson=self.us_states,
@@ -84,20 +84,21 @@ class Map:
         center = self.manual_zoom.get("center", {"lat": 39.8282, "lon": -98.5795})
         zoom = self.manual_zoom.get("zoom", 3)
 
+        # Update layout, such as adding bounds and map style
         self.fig.update_layout(
             mapbox=dict(
                 bounds={"west": -180, "east": -50, "south": 10, "north": 75},
                 style="carto-darkmatter",
                 center=center,
                 zoom=zoom,
-                layers=[
+                layers=[  # Add the OpenRailwayMap
                     {
                         "below": 'traces',
                         "sourcetype": "raster",
                         "sourceattribution": (
                             'Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" target="_blank">'
                             'CC-BY-SA2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank">'
-                            'OpenRailwayMap</a>'
+                            'OpenRailwayMap</a>'  # Reference OpenRailwayMap in the plot
                         ),
                         "source": [
                             "https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
@@ -117,20 +118,21 @@ class Map:
         """
         Adds a density layer of points to the map (e.g., for incidences).
         """
+
         # Remove any existing densitymapbox layers first
         traces_to_remove = []
         for i, trace in enumerate(self.fig.data):
             if isinstance(trace, go.Densitymapbox):
                 traces_to_remove.append(i)
-
         for i in reversed(traces_to_remove):
             self.fig.data = self.fig.data[:i] + self.fig.data[i + 1:]
 
+        # Filter the data on only latitude and longitude
         if df_state is not None and not df_state.empty:
             df_state = df_state.dropna(subset=['Latitude', 'Longitud'])
 
             if US_POLYGON is not None:
-                # Filter out points outside the US polygon, if desired
+                # Filter out points outside the US polygon
                 gdf = gpd.GeoDataFrame(
                     df_state,
                     geometry=gpd.points_from_xy(df_state['Longitud'], df_state['Latitude'])
@@ -138,6 +140,7 @@ class Map:
                 gdf = gdf[gdf['geometry'].within(US_POLYGON)]
                 df_state = pd.DataFrame(gdf.drop(columns='geometry'))
 
+            # Add points if the dataframe is not empty
             if not df_state.empty:
                 self.fig.add_trace(
                     go.Densitymapbox(
@@ -200,12 +203,18 @@ class BarChart:
     """
 
     def __init__(self, df: pd.DataFrame, states_center: pd.DataFrame) -> None:
+        """
+        Initializes the BarChart object with necessary data.
+        """
         self.df = df
         self.states_center = states_center
         self.bar = None
         self.states = None
 
     def create_barchart(self) -> go.Figure:
+        """
+        Generates the barchart with states and their belonging crash count.
+        """
         self.bar = go.Figure()
 
         if "state_name" in self.df.columns:
@@ -220,6 +229,7 @@ class BarChart:
                 diff['count'] = 0
                 self.states = pd.concat([self.states, diff], ignore_index=True)
 
+        # Create the barchart
         self.bar.add_trace(
             go.Bar(
                 x=self.states['count'],
@@ -232,6 +242,7 @@ class BarChart:
             )
         )
 
+        # Update the layout with clear background and remove axis
         self.bar.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
@@ -255,6 +266,9 @@ class HeatMap:
     """
 
     def __init__(self, aliases: Dict[str, str], df: pd.DataFrame):
+        """
+        Initializes the HeatMap object with necessary data.
+        """
         self.df = df
         self.aliases = aliases
 
@@ -312,6 +326,8 @@ class HeatMap:
             title="Heatmap of Total Incidents by Month and Year",
             color_continuous_scale=px.colors.sequential.Viridis
         )
+
+        # Update layout with clear background and font size
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
@@ -350,8 +366,10 @@ class StreamGraph:
             .reset_index(name='Count')
         )
 
+        # Get unique incident types
         incident_types = df_grouped['Incident Type Name'].unique()
 
+        # Make sure all types have different color
         colors = [
             '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
             '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
@@ -359,6 +377,7 @@ class StreamGraph:
 
         fig = go.Figure()
 
+        # Create the graph
         for idx, itype in enumerate(incident_types):
             color = colors[idx % len(colors)]
             df_type = df_grouped[df_grouped['Incident Type Name'] == itype].sort_values(by='corrected_year')
@@ -377,6 +396,7 @@ class StreamGraph:
                 )
             )
 
+        # Update layout with title and clear background etc.
         fig.update_layout(
             title='Incident Types Over Time',
             xaxis_title='Year',
@@ -398,14 +418,15 @@ class WeatherHeatMap:
     """
 
     def __init__(self, aliases: Dict[str, str], df: pd.DataFrame) -> None:
+        """
+        Initializes the WeatherHeatMap object with necessary data.
+        """
         self.df = df
         self.aliases = aliases
 
     def create(self) -> go.Figure:
         """
         Creates a heatmap with weather conditions on the x-axis and injury bins on the y-axis.
-        Returns:
-            A Plotly Figure object.
         """
         dff = self.df
 
@@ -448,7 +469,7 @@ class WeatherHeatMap:
             )
         )
 
-        # Style configuration with axis labels
+        # Style configuration with axis labels and clear background etc.
         fig.update_layout(
             margin=dict(t=100, l=20, r=20, b=20),
             font=dict(size=14, color="white"),
@@ -484,6 +505,9 @@ class CustomPlots:
             df: pd.DataFrame,
             selected_states: Optional[List[str]] = None,
     ):
+        """
+        Initializes the CustomPlots object with necessary data.
+        """
         self.aliases = aliases
         self.dff = dff
         self.selected_states = selected_states
@@ -603,7 +627,7 @@ class CustomPlots:
             )
             return fig
 
-        # Example: Binning logic
+        # Bin the attributes when needed
         bins_damage = [0, 1, 10000, 100000, 500000, self.df["ACCDMG"].max()]
         labels_damage = ["No Damage", "1-10.000 $", "10.000-100.000 $", "100.000-500.000 $", "500.000+ $"]
         dff["ACCDMG_Binned"] = pd.cut(dff["ACCDMG"], bins=bins_damage, labels=labels_damage, include_lowest=True)
@@ -617,7 +641,7 @@ class CustomPlots:
         labels_speed = ["0 MPH", "1-10 MPH", "10-20 MPH", "20-50 MPH", "50-100 MPH", "100+ MPH"]
         dff["TRNSPD_Binned"] = pd.cut(self.df["TRNSPD"], bins=bins_speed, labels=labels_speed, include_lowest=True)
 
-        # Assign explicit colors if needed
+        # Assign color
         dff["state_color"] = dff["state_name"].apply(
             lambda x: "#FF0000" if x in (self.selected_states or []) else "#FF0000"
         )
@@ -669,9 +693,6 @@ class CustomPlots:
                 font=dict(size=16, color="white")
             )
             return fig
-
-        # Caller might pass in a cause_category_mapping; if you have that, you can do it here, or do a fallback
-        # dff["CAUSE_CATEGORY"] = dff["CAUSE"].map(cause_category_mapping).fillna("Unknown")
 
         grouped = dff.groupby("CAUSE_CATEGORY")[["CARS", "TOTINJ", "TOTKLD", "EVACUATE"]].sum().reset_index()
         melted = grouped.melt(
@@ -789,7 +810,7 @@ class CustomPlots:
                 sampled_df = filtered_dff.sample(frac=0.1, random_state=42)
 
                 fig = px.violin(
-                    sampled_df,
+                    filtered_dff,
                     x="TYPE_LABEL",
                     y="ACCDMG",
                     box=True,
@@ -898,14 +919,14 @@ class CustomPlots:
                 customdata=grouped["CAUSE_INFO"],
             )
 
-            # Layout tweaks
+            # Update layout
             fig.update_layout(
                 margin=dict(t=100, l=20, r=20, b=20),
                 font=dict(size=14, color="white"),
                 paper_bgcolor="rgba(0,0,0,0)",
             )
 
-        else:
+        else:  # Error when needed
             fig.add_annotation(
                 text="Missing columns for plot_5_2: ACCDMG, TYPE_LABEL, or CAUSE",
                 showarrow=False,
@@ -966,7 +987,7 @@ class CustomPlots:
             try:
                 sampled_df = dff.sample(frac=0.1, random_state=42)
                 fig = px.violin(
-                    sampled_df,
+                    dff,
                     x="TYPE_LABEL",
                     y="ACCDMG",
                     box=True,

@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import json
 from typing import Tuple, Dict, Any
-
 from pandas import DataFrame
 
 
@@ -46,15 +45,18 @@ def get_data() -> tuple[DataFrame, DataFrame, Any, Any, list[Any], Any, DataFram
     df['corrected_year'] = np.where(df['YEAR'] > 24.0, 1900 + df['YEAR'], 2000 + df['YEAR'])
     pd.to_numeric(df['corrected_year'])
 
+    # Create date attribute
     df['DATE'] = pd.to_datetime(df['corrected_year'].astype(str) + '-'
                                 + df['MONTH'].astype(str) + '-'
                                 + df['DAY'].astype(str),
                                 errors='coerce')
 
+    # Create year+month attribute
     df['DATE_M'] = pd.to_datetime(df['corrected_year'].astype(str) + '-'
                                   + df['MONTH'].astype(str),
                                   errors='coerce')
 
+    # Add fips code to the data matching STATE
     df = pd.merge(df, fips_codes, left_on='STATE', right_on='fips').drop('fips', axis=1)
 
     # Ensure consistent state names by stripping whitespace and standardizing case
@@ -65,7 +67,7 @@ def get_data() -> tuple[DataFrame, DataFrame, Any, Any, list[Any], Any, DataFram
     with open('data/us-states.geojson', 'r') as geojson_file:
         us_states = json.load(geojson_file)
 
-    # Aggregate crash counts by state
+    # Aggregate crash counts by state and make sure all states are added
     state_count = df.groupby('state_name').size().reset_index(name='crash_count').sort_values(by='crash_count',
                                                                                               ascending=False)
     diff = pd.concat([states_center['Name'], state_count['state_name']]).drop_duplicates(keep=False).to_frame()

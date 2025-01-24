@@ -2,8 +2,10 @@ from typing import Dict
 from GUI.data import get_data
 from shapely.geometry import Polygon
 
+# Load data
 df, states_center, state_count, us_states, states_alphabetical, city_data, crossing_data = get_data()
 
+# Create aliased dictionary
 aliases: Dict[str, str] = {
     'corrected_year': 'Incident Year',
     'IMO': 'Incident Month',
@@ -40,6 +42,7 @@ aliases: Dict[str, str] = {
     'DRUG': 'Positive Drug Tests',
 }
 
+# Create list of dictionary for the labels of plots in the dropdown
 viz_options = [
     # ----- (1) Analyzing Temporal Trends -----
     {
@@ -101,6 +104,7 @@ viz_options = [
     },
 ]
 
+# Create dictionary with the incident type numbers and their belonging description
 incident_types: Dict[int, str] = {
     1: 'Derailment',
     2: 'Head on collision',
@@ -117,6 +121,7 @@ incident_types: Dict[int, str] = {
     13: 'Other (described in narration)'
 }
 
+# Create dictionary with the visibility numbers and their belonging description
 visibility: Dict[int, str] = {
     1: 'Dawn',
     2: 'Day',
@@ -124,6 +129,7 @@ visibility: Dict[int, str] = {
     4: 'Dark',
 }
 
+# Create dictionary with the weather numbers and their belonging description
 weather: Dict[int, str] = {
     1: 'Clear',
     2: 'Cloudy',
@@ -133,6 +139,7 @@ weather: Dict[int, str] = {
     6: 'Snow',
 }
 
+# Create dictionary with the cause codes and belonging description and types
 fra_cause_codes = {
     "TRACK, ROADBED AND STRUCTURES": {
         "Roadbed": {
