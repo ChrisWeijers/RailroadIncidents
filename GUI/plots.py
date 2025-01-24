@@ -810,7 +810,7 @@ class CustomPlots:
                 sampled_df = filtered_dff.sample(frac=0.1, random_state=42)
 
                 fig = px.violin(
-                    filtered_dff,
+                    sampled_df,
                     x="TYPE_LABEL",
                     y="ACCDMG",
                     box=True,
@@ -987,7 +987,7 @@ class CustomPlots:
             try:
                 sampled_df = dff.sample(frac=0.1, random_state=42)
                 fig = px.violin(
-                    dff,
+                    sampled_df,
                     x="TYPE_LABEL",
                     y="ACCDMG",
                     box=True,
