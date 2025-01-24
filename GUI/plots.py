@@ -856,43 +856,36 @@ class CustomPlots:
             )
         return fig
 
-    def plot_5_2(
-            dff: pd.DataFrame,
-            cause_category_mapping: dict,
-            fra_cause_codes: dict
-    ) -> go.Figure:
+    def plot_5_2(self, cause_category_mapping: dict, fra_cause_codes: dict) -> go.Figure:
         """
         Identifies outliers in ACCDMG, groups them by (TYPE_LABEL, CAUSE_CATEGORY, CAUSE, CAUSE_INFO),
         and shows a sunburst chart.
-
-        This function replicates the exact logic used in the 'elif selected_viz == "plot_5_2":' block.
         """
-        # Create a blank figure to start with (in case conditions fail)
-        fig = go.Figure()
 
-        # The columns we need
+        fig = go.Figure()
         needed = ["ACCDMG", "TYPE_LABEL", "CAUSE"]
 
-        # Only proceed if all needed columns exist in the DataFrame
+        # Use self.df as the working DataFrame
+        dff = self.df.copy()
+
+        # Ensure necessary columns exist
         if all(col in dff.columns for col in needed):
-            # Calculate the outlier threshold using IQR
+            # Calculate IQR and outlier threshold
             q1, q3 = dff["ACCDMG"].quantile([0.25, 0.75])
             iqr = q3 - q1
             outlier_threshold = q3 + 1.5 * iqr
 
-            # Filter to keep only outlier rows based on ACCDMG
+            # Filter outliers
             outliers = dff[dff["ACCDMG"] > outlier_threshold]
-
-            # If there are no outliers, fallback to the entire DataFrame
             if outliers.empty:
                 outliers = dff
 
-            # Map the "CAUSE" to a higher-level category
+            # Map cause to category
             outliers["CAUSE_CATEGORY"] = (
                 outliers["CAUSE"].map(cause_category_mapping).fillna("Unknown")
             )
 
-            # Map "CAUSE" to detailed descriptive text via nested dictionaries
+            # Map cause to descriptive text from nested dict
             outliers["CAUSE_INFO"] = outliers["CAUSE"].map(
                 lambda x: next(
                     (
@@ -906,6 +899,7 @@ class CustomPlots:
                     "Unknown cause",
                 )
             )
+
             # Group and count
             grouped = (
                 outliers
@@ -913,7 +907,8 @@ class CustomPlots:
                 .size()
                 .reset_index(name="count")
             )
-            # Build the sunburst chart
+
+            # Sunburst
             fig = px.sunburst(
                 grouped,
                 path=["TYPE_LABEL", "CAUSE_CATEGORY", "CAUSE"],
@@ -922,7 +917,8 @@ class CustomPlots:
                 color="count",
                 color_continuous_scale="Blues",
             )
-            # Use "CAUSE_INFO" for the hover details
+
+            # Custom hover data
             fig.update_traces(
                 hovertemplate=(
                     "<b>%{label}</b><br>"
@@ -932,12 +928,22 @@ class CustomPlots:
                 ),
                 customdata=grouped["CAUSE_INFO"],
             )
-            # Update layout
+
+            # Layout tweaks
             fig.update_layout(
                 margin=dict(t=100, l=20, r=20, b=20),
                 font=dict(size=14, color="white"),
                 paper_bgcolor="rgba(0,0,0,0)",
             )
+
+        else:
+            fig.add_annotation(
+                text="Missing columns for plot_5_2: ACCDMG, TYPE_LABEL, or CAUSE",
+                showarrow=False,
+                font=dict(size=16, color="white"),
+                xref="paper", yref="paper", x=0.5, y=0.5
+            )
+
         return fig
 
     def plot_6_1(self) -> go.Figure:
